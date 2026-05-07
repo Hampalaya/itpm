@@ -8,14 +8,12 @@
 }
 
 .nwcs-header {
-  display: flex;
+  display: inline-flex;
   align-items: center;
   gap: 6px;
-  width: 100%;
-  max-width: 403px;
   height: 25px;
-  padding-left: 12px;
-  border-radius: 22369600px;
+  padding: 0 12px;
+  border-radius: 9999px;
   border: 0.667px solid rgba(196, 30, 58, 0.30);
   background: rgba(196, 30, 58, 0.08);
   color: #9B1A2F;
@@ -23,9 +21,9 @@
   font-size: 11px;
   font-weight: 500;
   letter-spacing: 0.3px;
+  white-space: nowrap;
   box-sizing: border-box;
   margin: 0;
-  white-space: nowrap;
 }
 
 .login {
@@ -124,9 +122,9 @@ body {
   padding: 28px;
   border-radius: 12px;
   box-shadow:
-    0 8px 30px rgba(2, 6, 23, 0.06),
-    -12px 0 28px rgba(0, 0, 0, 0.07),
-    12px 0 28px rgba(0, 0, 0, 0.07);
+    0 8px 30px rgba(2, 6, 23, 0.07),
+    -14px 0 32px rgba(0, 0, 0, 0.08),
+    14px 0 32px rgba(0, 0, 0, 0.08);
 }
 
 .form-row { margin-bottom: 8px; }
@@ -142,4 +140,14 @@ body {
   justify-content: center;
   padding: 8px;
   box-sizing: border-box;
+}
+.error-msg {
+  background: #fee2e2;
+  color: #991b1b;
+  border: 1px solid #fca5a5;
+  padding: 0.8rem;
+  border-radius: 6px;
+  margin-bottom: 1rem;
+  font-size: 0.9rem;
+  text-align: center;
 }

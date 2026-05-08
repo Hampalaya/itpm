@@ -8,7 +8,6 @@ if (!isset($_SESSION['user_id'])) {
 }
 ?>
 
-
 <!doctype html>
 <html lang="en">
   <head>
@@ -27,38 +26,7 @@ if (!isset($_SESSION['user_id'])) {
   </head>
   <body>
     <div class="app-container">
-      <nav class="top-nav">
-        <div class="top-nav-left">
-          <div class="nav-logo">FE</div>
-          <div class="nav-brand">
-            <a class="nav-link">Dashboard</a>
-            <a class="nav-link">Students</a>
-            <a class="nav-link">Records</a>
-            <a class="nav-link">Feeding Log</a>
-            <a class="nav-link">Nutritional Status</a>
-            <a class="nav-link">Reports</a>
-            <a class="nav-link active">Data Validation</a>
-          </div>
-        </div>
-        <div class="top-nav-right">
-          <button class="icon-btn" title="Notifications">
-            <svg
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-              viewBox="0 0 24 24"
-            >
-              <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
-              <path d="M13.73 21a2 2 0 0 1-3.46 0" />
-            </svg>
-            <span class="notification-badge"></span>
-          </button>
-          <div class="user-pill">
-            <div class="user-avatar-sm">RB</div>
-            <span class="user-pill-text">Regie B.</span>
-          </div>
-        </div>
-      </nav>
+      <!-- Navbar removed as requested -->
 
       <div class="page-content">
         <div class="page-header">
@@ -127,5 +95,8 @@ if (!isset($_SESSION['user_id'])) {
     </div>
 
     <div class="toast-container" id="toastContainer"></div>
+
+    <!-- Optional: Add your JavaScript here for validation logic -->
+    <script src="js/data_validation.js"></script>
   </body>
 </html>

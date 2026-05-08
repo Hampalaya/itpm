@@ -20,43 +20,7 @@ if (!isset($_SESSION['user_id'])) {
 <body>
 
   <!-- Sidebar -->
-  <aside class="sidebar">
-    <div class="sidebar-logo">
-      <img src="logo.jpg" alt="NWCS Logo" class="sidebar-logo-img">
-    </div>
-    <nav class="sidebar-nav">
-      <a href="#" class="nav-item">
-        <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
-      </a>
-      <a href="#" class="nav-item">
-        <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" viewBox="0 0 24 24"><circle cx="10" cy="7" r="4"/><path d="M2 21v-1a8 8 0 0 1 8-8"/><path d="M17 21v-1"/><path d="M17 14v-1"/><path d="M20 17.5h-6"/></svg>
-      </a>
-      <a href="#" class="nav-item active">
-        <svg width="20" height="20" fill="none" stroke="white" stroke-width="1.6" viewBox="0 0 24 24"><path d="M3 3h7v7H3z"/><path d="M14 3h7v4H14z"/><path d="M14 10h7v7H14z"/><path d="M3 14h7v7H3z"/></svg>
-      </a>
-      <a href="#" class="nav-item">
-        <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" viewBox="0 0 24 24"><rect x="4" y="4" width="6" height="9"/><rect x="14" y="4" width="6" height="16"/></svg>
-      </a>
-      <a href="#" class="nav-item">
-        <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/></svg>
-      </a>
-      <a href="#" class="nav-item">
-        <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="1"/><path d="M4 9h16"/></svg>
-      </a>
-      <a href="#" class="nav-item">
-        <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><circle cx="19" cy="5" r="2"/><circle cx="5" cy="19" r="2"/></svg>
-      </a>
-      <a href="#" class="nav-item">
-        <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" viewBox="0 0 24 24"><rect x="4" y="4" width="6" height="16" rx="1"/><circle cx="16" cy="8" r="4"/></svg>
-      </a>
-      <a href="#" class="nav-item">
-        <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" viewBox="0 0 24 24"><path d="M12 12m-4 0a4 4 0 1 0 8 0a4 4 0 1 0 -8 0"/><path d="M12 3v1m0 16v1m9-9h-1M4 12H3"/></svg>
-      </a>
-    </nav>
-    <div class="sidebar-footer">
-      <div class="user-avatar">U</div>
-    </div>
-  </aside>
+  <?php include 'includes/sidebar.php'; ?>
 
   <!-- Main Content -->
   <main class="main-content">

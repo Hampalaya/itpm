@@ -27,32 +27,7 @@ if (!isset($_SESSION['user_id'])) {
   <body>
     <div class="app-container">
       <!-- Sidebar -->
-      <aside class="sidebar">
-        <div class="sidebar-logo">
-          <!-- Logo placeholder -->
-        </div>
-        <nav class="sidebar-menu">
-          <div class="sidebar-item">
-            <!-- Dashboard icon -->
-          </div>
-          <div class="sidebar-item active">
-            <!-- Students icon -->
-          </div>
-          <div class="sidebar-item">
-            <!-- Records icon -->
-          </div>
-          <div class="sidebar-item">
-            <!-- Feeding Log icon -->
-          </div>
-          <div class="sidebar-item">
-            <!-- Reports icon -->
-          </div>
-          <div class="sidebar-item">
-            <!-- Settings icon -->
-          </div>
-        </nav>
-        <div class="sidebar-avatar">U</div>
-      </aside>
+      <?php include 'includes/sidebar.php'; ?>
 
       <!-- Main Content -->
       <main class="main-content">

@@ -28,6 +28,7 @@ if (!isset($_SESSION['user_id'])) {
       href="https://cdn.fontsource.org/css/google/figtree/400,500,600,700.css"
       rel="stylesheet"
     />
+    <script src="js/sidebar.js"></script>
   </head>
   <body>
     <!-- Sidebar -->

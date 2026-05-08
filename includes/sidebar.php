@@ -47,14 +47,14 @@ $currentPage = basename($_SERVER['PHP_SELF'], '.php');
       <span class="nav-label">Dashboard</span>
     </a>
 
-    <a href="students.php" class="nav-item <?= $currentPage === 'students' ? 'active' : '' ?>" data-page="student-profiles">
+    <a href="student_profile.php" class="nav-item <?= $currentPage === 'student_profile' ? 'active' : '' ?>" data-page="student-profiles">
       <span class="nav-icon">
         <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
       </span>
       <span class="nav-label">Student Profiles</span>
     </a>
 
-    <a href="measurements.php" class="nav-item <?= $currentPage === 'measurements' ? 'active' : '' ?>" data-page="measurements">
+    <a href="measurement.php" class="nav-item <?= $currentPage === 'measurement' ? 'active' : '' ?>" data-page="measurements">
       <span class="nav-icon">
         <svg viewBox="0 0 24 24"><path d="M2 12h2M6 8v8M10 5v14M14 9v6M18 3v18M22 12h0"/><rect x="1" y="1" width="22" height="22" rx="3"/></svg>
       </span>

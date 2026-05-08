@@ -46,6 +46,8 @@ body {
 
 /* Main Content - Full width now */
 .main-content {
+  display: block;
+  min-height: 100vh;
   padding: 37.8px 64px;
   max-width: 1400px;
   margin: 0 auto;

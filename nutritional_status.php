@@ -17,16 +17,19 @@ if (!isset($_SESSION['user_id'])) {
     
     <!-- External CSS -->
     <link rel="stylesheet" href="css/nutritional_status.css" />
+    <link rel="stylesheet" href="css/sidebar.css" />
     
     <!-- External Fonts -->
     <link
       href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap"
       rel="stylesheet"
     />
+    <script src="js/sidebar.js" defer></script>
   </head>
   <body>
     <div class="app-container">
       <!-- Navbar removed as requested -->
+       <?php include 'includes/sidebar.php'; ?>
 
       <!-- Page Content -->
       <div class="page-content">

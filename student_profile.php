@@ -16,13 +16,15 @@ if (!isset($_SESSION['user_id'])) {
     <title>FEED System - Student Profiles</title>
     
     <!-- External CSS -->
-    <link rel="stylesheet" href="css/student_profiles.css" />
+    <link rel="stylesheet" href="css/sidebar.css" />
+    <link rel="stylesheet" href="css/student_profile.css" />
     
     <!-- External Fonts -->
     <link
       href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap"
       rel="stylesheet"
     />
+    <script src="js/sidebar.js" defer></script>
   </head>
   <body>
     <div class="app-container">
@@ -30,7 +32,7 @@ if (!isset($_SESSION['user_id'])) {
       <?php include 'includes/sidebar.php'; ?>
 
       <!-- Main Content -->
-      <main class="main-content">
+      <main class="main-content main-content-wrapper" id="mainWrapper">
         <!-- Page Header -->
         <div class="page-header">
           <h1 class="page-title">Student Profiles</h1>

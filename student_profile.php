@@ -1,40 +1,160 @@
 <?php
-// 1. START SESSION AT THE VERY TOP
 session_start();
-// Optional: Redirect if not logged in
-if (!isset($_SESSION['user_id'])) {
-    header('Location: index.php');
-    exit;
-}
-?>
+require_once 'includes/db.php';
+require_once 'includes/functions.php';
 
+// Auth guard
+if (!isset($_SESSION['user_id'])) {
+  header('Location: index.php');
+  exit;
+}
+
+// ========== HANDLE POST ACTIONS (Add/Edit/Delete) ==========
+$message = '';
+$messageType = '';
+
+// DELETE
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'delete') {
+  if ($_SESSION['role'] !== 'admin') {
+    $message = 'Only admins can delete records.';
+    $messageType = 'error';
+  } else {
+    $id = (int)($_POST['student_id'] ?? 0);
+    if ($id > 0) {
+      $stmt = $pdo->prepare("DELETE FROM students WHERE id = ?");
+      $stmt->execute([$id]);
+      logAudit($pdo, 'delete', 'students', $id, 'Deleted student');
+      $message = 'Student deleted.';
+      $messageType = 'success';
+    }
+  }
+}
+
+// ADD or UPDATE
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && in_array($_POST['action'], ['add', 'update'])) {
+  $lrn = trim($_POST['lrn'] ?? '');
+  $first = trim($_POST['first_name'] ?? '');
+  $middle = trim($_POST['middle_name'] ?? '');
+  $last = trim($_POST['last_name'] ?? '');
+  $grade = (int)($_POST['grade_level'] ?? 0);
+  $section = trim($_POST['section'] ?? '');
+  $age = (int)($_POST['age'] ?? 0);
+  $sex = $_POST['sex'] ?? '';
+  $schoolYear = trim($_POST['school_year'] ?? '2025-2026');
+
+  if (!$lrn || !$first || !$last || !$grade || !$section || !$age || !$sex) {
+    $message = 'Fill all required fields.';
+    $messageType = 'error';
+  } else {
+    if ($_POST['action'] === 'add') {
+      $chk = $pdo->prepare("SELECT id FROM students WHERE lrn = ?");
+      $chk->execute([$lrn]);
+      if ($chk->fetch()) {
+        $message = 'LRN already exists.';
+        $messageType = 'error';
+      } else {
+        $stmt = $pdo->prepare("INSERT INTO students (lrn,first_name,middle_name,last_name,grade_level,section,age,sex,school_year) VALUES (?,?,?,?,?,?,?,?,?)");
+        $stmt->execute([$lrn, $first, $middle, $last, $grade, $section, $age, $sex, $schoolYear]);
+        logAudit($pdo, 'insert', 'students', $pdo->lastInsertId(), "Added: $first $last");
+        $message = 'Student added.';
+        $messageType = 'success';
+      }
+    } else {
+      $id = (int)($_POST['id'] ?? 0);
+      $stmt = $pdo->prepare("UPDATE students SET lrn=?,first_name=?,middle_name=?,last_name=?,grade_level=?,section=?,age=?,sex=?,school_year=? WHERE id=?");
+      $stmt->execute([$lrn, $first, $middle, $last, $grade, $section, $age, $sex, $schoolYear, $id]);
+      logAudit($pdo, 'update', 'students', $id, "Updated: $first $last");
+      $message = 'Student updated.';
+      $messageType = 'success';
+    }
+  }
+}
+
+// ========== FETCH & FILTER STUDENTS ==========
+$search = trim($_GET['search'] ?? '');
+$gradeFilter = $_GET['grade_filter'] ?? '';
+$sectionFilter = $_GET['section_filter'] ?? '';
+$sexFilter = $_GET['sex_filter'] ?? '';
+$schoolYearFilter = $_GET['school_year_filter'] ?? '';
+
+$where = [];
+$params = [];
+
+// Search: name, LRN
+if ($search) {
+  $where[] = "(CONCAT(first_name,' ',COALESCE(middle_name,''),' ',last_name) LIKE ? OR lrn LIKE ?)";
+  $params = array_merge($params, ["%$search%", "%$search%"]);
+}
+// Filters
+if ($gradeFilter) {
+  $where[] = "grade_level = ?";
+  $params[] = $gradeFilter;
+}
+if ($sectionFilter) {
+  $where[] = "section = ?";
+  $params[] = $sectionFilter;
+}
+if ($sexFilter) {
+  $where[] = "sex = ?";
+  $params[] = $sexFilter;
+}
+if ($schoolYearFilter) {
+  $where[] = "school_year = ?";
+  $params[] = $schoolYearFilter;
+}
+
+// Role-based: teacher sees only their assigned_section
+if (in_array($_SESSION['role'], ['teacher', 'coordinator']) && !empty($_SESSION['assigned_section'])) {
+  $where[] = "section = ?";
+  $params[] = $_SESSION['assigned_section'];
+}
+
+$sql = "SELECT * FROM students";
+if ($where) $sql .= " WHERE " . implode(' AND ', $where);
+$sql .= " ORDER BY grade_level, section, last_name";
+
+$stmt = $pdo->prepare($sql);
+$stmt->execute($params);
+$students = $stmt->fetchAll();
+
+// For Edit modal pre-fill
+$edit = null;
+if (isset($_GET['edit'])) {
+  $stmt = $pdo->prepare("SELECT * FROM students WHERE id = ?");
+  $stmt->execute([(int)$_GET['edit']]);
+  $edit = $stmt->fetch();
+}
+// For Add modal trigger
+$showAddModal = isset($_GET['add']) || (isset($_POST['action']) && $_POST['action'] === 'add' && $messageType === 'error');
+?>
 <!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>FEED System - Student Profiles</title>
-    
-    <!-- External CSS -->
-    <link rel="stylesheet" href="css/sidebar.css" />
-    <link rel="stylesheet" href="css/student_profile.css" />
-    
-    <!-- External Fonts -->
-    <link
-      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap"
-      rel="stylesheet"
-    />
-    <script src="js/sidebar.js" defer></script>
-  </head>
-  <body>
-    <div class="app-container">
-      <!-- Sidebar -->
-      <?php include 'includes/sidebar.php'; ?>
 
-      <!-- Main Content Wrapper -->
-      <div class="main-content-wrapper" id="mainWrapper">
-        <main class="main-content">
-          <!-- Page Header -->
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FEED System - Student Profiles</title>
+  <link rel="stylesheet" href="css/sidebar.css" />
+  <link rel="stylesheet" href="css/student_profile.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <script src="js/sidebar.js" defer></script>
+</head>
+
+<body>
+  <div class="app-container">
+    <?php include 'includes/sidebar.php'; ?>
+    <div class="main-content-wrapper" id="mainWrapper">
+      <main class="main-content">
+
+        <!-- Toast Message -->
+        <?php if ($message): ?>
+          <div class="toast toast-<?= $messageType ?>" id="toast">
+            <span><?= htmlspecialchars($message) ?></span>
+            <button type="button" onclick="document.getElementById('toast').style.display='none'">×</button>
+          </div>
+        <?php endif; ?>
+
+        <!-- Page Header -->
         <div class="page-header">
           <h1 class="page-title">Student Profiles</h1>
           <p class="page-subtitle">Manage student information and beneficiary status</p>
@@ -42,42 +162,85 @@ if (!isset($_SESSION['user_id'])) {
 
         <!-- Header Actions -->
         <div class="header-actions">
-          <button class="btn btn-secondary">
+          <!-- Export: triggers CSV download -->
+          <form method="get" action="" style="display:inline;">
+            <input type="hidden" name="export" value="1">
+            <?php foreach (['search', 'grade_filter', 'section_filter', 'sex_filter', 'school_year_filter'] as $k): ?>
+              <?php if (!empty($_GET[$k])): ?><input type="hidden" name="<?= $k ?>" value="<?= htmlspecialchars($_GET[$k]) ?>"><?php endif; ?>
+            <?php endforeach; ?>
+            <button type="submit" class="btn btn-secondary">
+              <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                <polyline points="7 10 12 15 17 10" />
+                <line x1="12" y1="15" x2="12" y2="3" />
+              </svg>
+              Export
+            </button>
+          </form>
+          <!-- Add Student: opens modal via URL param -->
+          <a href="?add=1" class="btn btn-primary">
             <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-              <polyline points="7 10 12 15 17 10"/>
-              <line x1="12" y1="15" x2="12" y2="3"/>
-            </svg>
-            Export
-          </button>
-          <button class="btn btn-primary">
-            <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-              <line x1="12" y1="5" x2="12" y2="19"/>
-              <line x1="5" y1="12" x2="19" y2="12"/>
+              <line x1="12" y1="5" x2="12" y2="19" />
+              <line x1="5" y1="12" x2="19" y2="12" />
             </svg>
             Add Student
-          </button>
+          </a>
         </div>
 
         <!-- Search & Filters -->
         <div class="controls-bar">
-          <div class="search-wrapper">
+          <form method="get" action="" class="search-wrapper">
             <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-              <circle cx="11" cy="11" r="8"/>
-              <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+              <circle cx="11" cy="11" r="8" />
+              <line x1="21" y1="21" x2="16.65" y2="16.65" />
             </svg>
-            <input type="text" class="search-input" placeholder="Search by name, Student ID, or LRN..." />
-          </div>
-          <button class="filter-btn">
+            <input type="text" name="search" class="search-input" placeholder="Search by name or LRN..." value="<?= htmlspecialchars($search) ?>" />
+            <button type="submit" class="btn-search">Search</button>
+          </form>
+          <button type="button" class="filter-btn" id="toggleFilters">
             <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-              <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/>
+              <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3" />
             </svg>
             Show Filters
           </button>
         </div>
 
+        <!-- Filter Panel (hidden by default, toggled by JS) -->
+        <div class="filter-panel" id="filterPanel" style="display:none;">
+          <form method="get" action="" class="filter-form">
+            <input type="hidden" name="search" value="<?= htmlspecialchars($search) ?>">
+            <div class="filter-row">
+              <select name="grade_filter" onchange="this.form.submit()">
+                <option value="">All Grades</option>
+                <?php for ($g = 1; $g <= 6; $g++): ?>
+                  <option value="<?= $g ?>" <?= $gradeFilter === $g ? 'selected' : '' ?>>Grade <?= $g ?></option>
+                <?php endfor; ?>
+              </select>
+              <select name="section_filter" onchange="this.form.submit()">
+                <option value="">All Sections</option>
+                <?php foreach (['A', 'B', 'C', 'D', 'E'] as $sec): ?>
+                  <option value="<?= $sec ?>" <?= $sectionFilter === $sec ? 'selected' : '' ?>>Section <?= $sec ?></option>
+                <?php endforeach; ?>
+              </select>
+              <select name="sex_filter" onchange="this.form.submit()">
+                <option value="">All Sex</option>
+                <option value="M" <?= $sexFilter === 'M' ? 'selected' : '' ?>>Male</option>
+                <option value="F" <?= $sexFilter === 'F' ? 'selected' : '' ?>>Female</option>
+              </select>
+              <select name="school_year_filter" onchange="this.form.submit()">
+                <option value="">All Years</option>
+                <option value="2025-2026" <?= $schoolYearFilter === '2025-2026' ? 'selected' : '' ?>>2025-2026</option>
+                <option value="2024-2025" <?= $schoolYearFilter === '2024-2025' ? 'selected' : '' ?>>2024-2025</option>
+              </select>
+              <?php if ($gradeFilter || $sectionFilter || $sexFilter || $schoolYearFilter): ?>
+                <a href="student_profile.php<?= $search ? '?search=' . urlencode($search) : '' ?>" class="btn btn-outline">Clear</a>
+              <?php endif; ?>
+            </div>
+          </form>
+        </div>
+
         <!-- Results Info -->
-        <div class="results-info">Showing 8 of 8 students</div>
+        <div class="results-info">Showing <?= count($students) ?> student<?= count($students) !== 1 ? 's' : '' ?></div>
 
         <!-- Student Table -->
         <div class="table-card">
@@ -85,235 +248,222 @@ if (!isset($_SESSION['user_id'])) {
             <table>
               <thead>
                 <tr>
-                  <th>Student ID</th>
                   <th>LRN</th>
                   <th>Full Name</th>
                   <th>Grade/Section</th>
+                  <th>Age</th>
                   <th>Sex</th>
-                  <th>Status</th>
                   <th class="right">Actions</th>
                 </tr>
               </thead>
               <tbody>
-                <!-- Student 1 -->
-                <tr>
-                  <td>STU001</td>
-                  <td>123456789012</td>
-                  <td>
-                    <div class="student-cell">
-                      <div class="student-avatar">J</div>
-                      <div class="student-info">
-                        <span class="student-name">Juan Dela Cruz</span>
-                        <span class="allergy-badge">
-                          <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                            <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
-                          </svg>
-                          Has allergies
-                        </span>
-                      </div>
-                    </div>
-                  </td>
-                  <td>Grade 1 / Section A</td>
-                  <td>Male</td>
-                  <td><span class="status-badge beneficiary">Beneficiary</span></td>
-                  <td class="right">
-                    <div class="action-buttons">
-                      <button class="action-btn edit">
-                        <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                          <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
-                          <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
-                        </svg>
-                        Edit
-                      </button>
-                      <button class="action-btn delete">
-                        <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                          <polyline points="3 6 5 6 21 6"/>
-                          <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
-                        </svg>
-                        Delete
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-
-                <!-- Student 2 -->
-                <tr>
-                  <td>STU002</td>
-                  <td>123456789013</td>
-                  <td>
-                    <div class="student-cell">
-                      <div class="student-avatar">M</div>
-                      <div class="student-info">
-                        <span class="student-name">Maria Santos</span>
-                      </div>
-                    </div>
-                  </td>
-                  <td>Grade 2 / Section B</td>
-                  <td>Female</td>
-                  <td><span class="status-badge beneficiary">Beneficiary</span></td>
-                  <td class="right">
-                    <div class="action-buttons">
-                      <button class="action-btn edit">Edit</button>
-                      <button class="action-btn delete">Delete</button>
-                    </div>
-                  </td>
-                </tr>
-
-                <!-- Student 3 -->
-                <tr>
-                  <td>STU003</td>
-                  <td>123456789014</td>
-                  <td>
-                    <div class="student-cell">
-                      <div class="student-avatar">P</div>
-                      <div class="student-info">
-                        <span class="student-name">Pedro Reyes</span>
-                      </div>
-                    </div>
-                  </td>
-                  <td>Grade 1 / Section A</td>
-                  <td>Male</td>
-                  <td><span class="status-badge beneficiary">Beneficiary</span></td>
-                  <td class="right">
-                    <div class="action-buttons">
-                      <button class="action-btn edit">Edit</button>
-                      <button class="action-btn delete">Delete</button>
-                    </div>
-                  </td>
-                </tr>
-
-                <!-- Student 4 -->
-                <tr>
-                  <td>STU004</td>
-                  <td>123456789015</td>
-                  <td>
-                    <div class="student-cell">
-                      <div class="student-avatar">A</div>
-                      <div class="student-info">
-                        <span class="student-name">Anna Lopez</span>
-                        <span class="allergy-badge">
-                          <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                            <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
-                          </svg>
-                          Has allergies
-                        </span>
-                      </div>
-                    </div>
-                  </td>
-                  <td>Grade 3 / Section C</td>
-                  <td>Female</td>
-                  <td><span class="status-badge non-beneficiary">Non-Beneficiary</span></td>
-                  <td class="right">
-                    <div class="action-buttons">
-                      <button class="action-btn edit">Edit</button>
-                      <button class="action-btn delete">Delete</button>
-                    </div>
-                  </td>
-                </tr>
-
-                <!-- Student 5 -->
-                <tr>
-                  <td>STU005</td>
-                  <td>123456789016</td>
-                  <td>
-                    <div class="student-cell">
-                      <div class="student-avatar">C</div>
-                      <div class="student-info">
-                        <span class="student-name">Carlos Garcia</span>
-                      </div>
-                    </div>
-                  </td>
-                  <td>Grade 2 / Section A</td>
-                  <td>Male</td>
-                  <td><span class="status-badge beneficiary">Beneficiary</span></td>
-                  <td class="right">
-                    <div class="action-buttons">
-                      <button class="action-btn edit">Edit</button>
-                      <button class="action-btn delete">Delete</button>
-                    </div>
-                  </td>
-                </tr>
-
-                <!-- Student 6 -->
-                <tr>
-                  <td>STU006</td>
-                  <td>123456789017</td>
-                  <td>
-                    <div class="student-cell">
-                      <div class="student-avatar">S</div>
-                      <div class="student-info">
-                        <span class="student-name">Sofia Martinez</span>
-                      </div>
-                    </div>
-                  </td>
-                  <td>Grade 1 / Section B</td>
-                  <td>Female</td>
-                  <td><span class="status-badge beneficiary">Beneficiary</span></td>
-                  <td class="right">
-                    <div class="action-buttons">
-                      <button class="action-btn edit">Edit</button>
-                      <button class="action-btn delete">Delete</button>
-                    </div>
-                  </td>
-                </tr>
-
-                <!-- Student 7 -->
-                <tr>
-                  <td>STU007</td>
-                  <td>123456789018</td>
-                  <td>
-                    <div class="student-cell">
-                      <div class="student-avatar">D</div>
-                      <div class="student-info">
-                        <span class="student-name">Diego Fernandez</span>
-                        <span class="allergy-badge">
-                          <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                            <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
-                          </svg>
-                          Has allergies
-                        </span>
-                      </div>
-                    </div>
-                  </td>
-                  <td>Grade 3 / Section A</td>
-                  <td>Male</td>
-                  <td><span class="status-badge beneficiary">Beneficiary</span></td>
-                  <td class="right">
-                    <div class="action-buttons">
-                      <button class="action-btn edit">Edit</button>
-                      <button class="action-btn delete">Delete</button>
-                    </div>
-                  </td>
-                </tr>
-
-                <!-- Student 8 -->
-                <tr>
-                  <td>STU008</td>
-                  <td>123456789019</td>
-                  <td>
-                    <div class="student-cell">
-                      <div class="student-avatar">I</div>
-                      <div class="student-info">
-                        <span class="student-name">Isabella Cruz</span>
-                      </div>
-                    </div>
-                  </td>
-                  <td>Grade 2 / Section C</td>
-                  <td>Female</td>
-                  <td><span class="status-badge beneficiary">Beneficiary</span></td>
-                  <td class="right">
-                    <div class="action-buttons">
-                      <button class="action-btn edit">Edit</button>
-                      <button class="action-btn delete">Delete</button>
-                    </div>
-                  </td>
-                </tr>
+                <?php if (empty($students)): ?>
+                  <tr>
+                    <td colspan="6" style="text-align:center;padding:2rem;color:#6b7a8d;">No students found.</td>
+                  </tr>
+                <?php else: ?>
+                  <?php foreach ($students as $s):
+                    $initial = strtoupper(substr($s['first_name'], 0, 1));
+                    $fullName = $s['first_name'] . ' ' . (!empty($s['middle_name']) ? $s['middle_name'][0] . '. ' : '') . $s['last_name'];
+                  ?>
+                    <tr>
+                      <td><?= htmlspecialchars($s['lrn']) ?></td>
+                      <td>
+                        <div class="student-cell">
+                          <div class="student-avatar"><?= $initial ?></div>
+                          <div class="student-info">
+                            <span class="student-name"><?= htmlspecialchars($fullName) ?></span>
+                          </div>
+                        </div>
+                      </td>
+                      <td>Grade <?= (int)$s['grade_level'] ?> / <?= htmlspecialchars($s['section']) ?></td>
+                      <td><?= (int)$s['age'] ?></td>
+                      <td><?= htmlspecialchars($s['sex']) ?></td>
+                      <td class="right">
+                        <div class="action-buttons">
+                          <a href="?edit=<?= $s['id'] ?><?= $search ? '&search=' . urlencode($search) : '' ?>" class="action-btn edit">
+                            <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                              <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                              <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                            </svg>
+                            Edit
+                          </a>
+                          <?php if ($_SESSION['role'] === 'admin'): ?>
+                            <form method="post" style="display:inline;" onsubmit="return confirm('Delete this student?');">
+                              <input type="hidden" name="action" value="delete">
+                              <input type="hidden" name="student_id" value="<?= $s['id'] ?>">
+                              <button type="submit" class="action-btn delete">
+                                <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                  <polyline points="3 6 5 6 21 6" />
+                                  <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                                </svg>
+                                Delete
+                              </button>
+                            </form>
+                          <?php endif; ?>
+                        </div>
+                      </td>
+                    </tr>
+                  <?php endforeach; ?>
+                <?php endif; ?>
               </tbody>
             </table>
           </div>
         </div>
       </main>
     </div>
+  </div>
+
+  <!-- Add/Edit Student Modal -->
+  <div class="modal-overlay <?= ($edit || $showAddModal) ? 'active' : '' ?>" id="studentModal">
+    <div class="modal">
+      <h2><?= $edit ? 'Edit Student' : 'Add New Student' ?></h2>
+      <form method="post" action="student_profile.php">
+        <input type="hidden" name="action" value="<?= $edit ? 'update' : 'add' ?>">
+        <?php if ($edit): ?><input type="hidden" name="id" value="<?= $edit['id'] ?>"><?php endif; ?>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>LRN *</label>
+            <input
+              type="text"
+              name="lrn"
+              value="<?= htmlspecialchars($edit['lrn'] ?? '') ?>"
+              required
+              maxlength="12"
+              pattern="[0-9]{12}"
+              title="Enter exactly 12 digits (no letters or spaces)"
+              inputmode="numeric"
+              autocomplete="off"
+              placeholder="123456789012"
+              oninput="this.value = this.value.replace(/[^0-9]/g, '').slice(0,12)"
+              class="form-input">
+            <small class="field-hint">DepEd LRN: 12 digits, numbers only</small>
+
+          </div>
+          <div class="form-group">
+            <label>School Year</label>
+            <select name="school_year" class="form-input">
+              <option value="2025-2026" <?= (!isset($edit['school_year']) || $edit['school_year'] === '2025-2026') ? 'selected' : '' ?>>2025-2026</option>
+              <option value="2024-2025" <?= (isset($edit['school_year']) && $edit['school_year'] === '2024-2025') ? 'selected' : '' ?>>2024-2025</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>First Name *</label>
+            <input
+              type="text"
+              name="first_name"
+              value="<?= htmlspecialchars($edit['first_name'] ?? '') ?>"
+              required
+              pattern="[A-Za-z\s\.'-]{2,50}"
+              title="Letters, spaces, apostrophes, hyphens only (no numbers)"
+              maxlength="50"
+              placeholder="Juan"
+              oninput="this.value = this.value.replace(/[^A-Za-z\s\.'-]/g, '')"
+              class="form-input">
+            <small class="field-hint">No numbers or special characters</small>
+          </div>
+          <div class="form-group">
+            <label>Middle Name</label>
+            <input
+              type="text"
+              name="middle_name"
+              value="<?= htmlspecialchars($edit['middle_name'] ?? '') ?>"
+              pattern="[A-Za-z\s\.'-]{0,50}"
+              title="Letters, spaces, apostrophes, hyphens only"
+              maxlength="50"
+              placeholder="Santos"
+              oninput="this.value = this.value.replace(/[^A-Za-z\s\.'-]/g, '')"
+              class="form-input">
+            <small class="field-hint">Optional</small>
+          </div>
+          <div class="form-group">
+            <label>Last Name *</label>
+            <input
+              type="text"
+              name="last_name"
+              value="<?= htmlspecialchars($edit['last_name'] ?? '') ?>"
+              required
+              pattern="[A-Za-z\s\.'-]{2,50}"
+              title="Letters, spaces, apostrophes, hyphens only (no numbers)"
+              maxlength="50"
+              placeholder="Dela Cruz"
+              oninput="this.value = this.value.replace(/[^A-Za-z\s\.'-]/g, '')"
+              class="form-input">
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>Grade Level *</label>
+            <select name="grade_level" required class="form-input">
+              <option value="">Select</option>
+              <?php for ($g = 1; $g <= 6; $g++): ?>
+                <option value="<?= $g ?>" <?= (isset($edit['grade_level']) && $edit['grade_level'] == $g) ? 'selected' : '' ?>>Grade <?= $g ?></option>
+              <?php endfor; ?>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Section *</label>
+            <input type="text" name="section" value="<?= htmlspecialchars($edit['section'] ?? '') ?>" required list="sections" class="form-input">
+            <datalist id="sections">
+              <option value="A">
+              <option value="B">
+              <option value="C">
+              <option value="D">
+              <option value="E">
+            </datalist>
+          </div>
+          <div class="form-group">
+            <label>Age *</label>
+            <input type="number" name="age" value="<?= htmlspecialchars($edit['age'] ?? '') ?>" required min="3" max="20" class="form-input">
+          </div>
+          <div class="form-group">
+            <label>Sex *</label>
+            <select name="sex" required class="form-input">
+              <option value="">Select</option>
+              <option value="M" <?= (isset($edit['sex']) && $edit['sex'] === 'M') ? 'selected' : '' ?>>Male</option>
+              <option value="F" <?= (isset($edit['sex']) && $edit['sex'] === 'F') ? 'selected' : '' ?>>Female</option>
+            </select>
+          </div>
+        </div>
+
+    <div class="modal-actions">
+      <a href="student_profile.php" class="btn btn-cancel">Cancel</a>
+      <button type="submit" class="btn btn-primary"><?= $edit ? 'Update' : 'Add' ?> Student</button>
     </div>
-  </body>
+    </form>
+  </div>
+  </div>
+
+  <!-- CSV Export Logic (runs if ?export=1) -->
+  <?php if (isset($_GET['export'])):
+    header('Content-Type: text/csv');
+    header('Content-Disposition: attachment; filename="students_' . date('Y-m-d') . '.csv"');
+    $out = fopen('php://output', 'w');
+    fputcsv($out, ['LRN', 'First Name', 'Middle Name', 'Last Name', 'Grade', 'Section', 'Age', 'Sex', 'School Year']);
+    foreach ($students as $s) {
+      fputcsv($out, [
+        $s['lrn'],
+        $s['first_name'],
+        $s['middle_name'],
+        $s['last_name'],
+        $s['grade_level'],
+        $s['section'],
+        $s['age'],
+        $s['sex'],
+        $s['school_year']
+      ]);
+    }
+    fclose($out);
+    exit;
+  endif; ?>
+
+  <!-- JS for Filters + Modal + Toast -->
+  <script src="js/student_profile.js"></script>
+</body>
+
 </html>

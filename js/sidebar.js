@@ -1,10 +1,7 @@
 document.addEventListener("DOMContentLoaded", function () {
   const sidebar = document.getElementById("sidebar");
 
-  // Sidebar not present on this page — skip initialization.
-  if (!sidebar) {
-    return;
-  }
+  if (!sidebar) return;
 
   const collapseBtn = document.getElementById("collapseBtn");
   const mainWrapper = document.getElementById("mainWrapper");
@@ -14,19 +11,53 @@ document.addEventListener("DOMContentLoaded", function () {
   const mobileToggle = document.getElementById("mobileToggle");
   const overlay = document.getElementById("overlay");
 
+  // ── Persist collapsed state across pages ──────────────────────────
+  const STORAGE_KEY = "sidebar_collapsed";
+
+  function setCollapsed(collapsed) {
+    if (collapsed) {
+      sidebar.classList.add("collapsed");
+      if (mainWrapper) mainWrapper.classList.add("expanded");
+      localStorage.setItem(STORAGE_KEY, "1");
+    } else {
+      sidebar.classList.remove("collapsed");
+      if (mainWrapper) mainWrapper.classList.remove("expanded");
+      localStorage.removeItem(STORAGE_KEY);
+    }
+  }
+
+  // Restore on load
+  if (localStorage.getItem(STORAGE_KEY) === "1") {
+    setCollapsed(true);
+  }
+
+  // Collapse button → collapses and stays collapsed
+  if (collapseBtn) {
+    collapseBtn.addEventListener("click", function () {
+      setCollapsed(true); // always collapse; expand is via expandBtn only
+    });
+  }
+
+  // ── Expand button (shown only when collapsed) ─────────────────────
+  // Inject the expand button into the sidebar header
+  const expandBtn = document.createElement("button");
+  expandBtn.className = "expand-btn";
+  expandBtn.id = "expandBtn";
+  expandBtn.setAttribute("aria-label", "Expand sidebar");
+  expandBtn.innerHTML = `<svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>`;
+
+  const sidebarHeader = sidebar.querySelector(".sidebar-header");
+  if (sidebarHeader) sidebarHeader.appendChild(expandBtn);
+
+  expandBtn.addEventListener("click", function () {
+    setCollapsed(false);
+  });
+
+  // ── Mobile ────────────────────────────────────────────────────────
   function isMobile() {
     return window.innerWidth <= 768;
   }
 
-  // Collapse toggle (desktop)
-  if (collapseBtn) {
-    collapseBtn.addEventListener("click", function () {
-      sidebar.classList.toggle("collapsed");
-      if (mainWrapper) mainWrapper.classList.toggle("expanded");
-    });
-  }
-
-  // Mobile menu toggle
   if (mobileToggle) {
     mobileToggle.addEventListener("click", function () {
       sidebar.classList.add("open-mobile");
@@ -35,10 +66,7 @@ document.addEventListener("DOMContentLoaded", function () {
     });
   }
 
-  // Close mobile menu on overlay click
-  if (overlay) {
-    overlay.addEventListener("click", closeMobile);
-  }
+  if (overlay) overlay.addEventListener("click", closeMobile);
 
   function closeMobile() {
     sidebar.classList.remove("open-mobile");
@@ -46,51 +74,33 @@ document.addEventListener("DOMContentLoaded", function () {
     document.body.style.overflow = "";
   }
 
-  // Nav item click handling
+  // ── Nav items ─────────────────────────────────────────────────────
   navItems.forEach(function (item) {
     item.addEventListener("click", function (e) {
-      // Only prevent default if href is "#" (placeholder links)
       const href = item.getAttribute("href");
-      if (href === "#" || !href) {
-        e.preventDefault();
-      }
+      if (href === "#" || !href) e.preventDefault();
 
-      // Update active state visually
-      navItems.forEach(function (nav) {
-        nav.classList.remove("active");
-      });
+      navItems.forEach(function (nav) { nav.classList.remove("active"); });
       item.classList.add("active");
 
-      // Update page title/subtitle if elements exist
       if (pageTitle && pageSubtitle) {
         var pageName = item.getAttribute("data-page");
         var displayName = pageName
           .replace(/-/g, " ")
-          .replace(/\b\w/g, function (c) {
-            return c.toUpperCase();
-          });
+          .replace(/\b\w/g, function (c) { return c.toUpperCase(); });
         pageTitle.textContent = displayName;
         pageSubtitle.textContent = "Welcome to " + displayName;
       }
 
-      // Close mobile menu after selection
-      if (isMobile()) {
-        setTimeout(closeMobile, 200);
-      }
+      if (isMobile()) setTimeout(closeMobile, 200);
     });
   });
 
-  // Close on Escape key
   document.addEventListener("keydown", function (e) {
-    if (e.key === "Escape" && sidebar.classList.contains("open-mobile")) {
-      closeMobile();
-    }
+    if (e.key === "Escape" && sidebar.classList.contains("open-mobile")) closeMobile();
   });
 
-  // Handle window resize
   window.addEventListener("resize", function () {
-    if (!isMobile() && sidebar.classList.contains("open-mobile")) {
-      closeMobile();
-    }
+    if (!isMobile() && sidebar.classList.contains("open-mobile")) closeMobile();
   });
 });

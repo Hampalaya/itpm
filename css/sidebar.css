@@ -464,3 +464,40 @@
     display: none !important;
   }
 }
+
+/* Expand button — only visible when sidebar is collapsed */
+.expand-btn {
+  display: none;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 6px;
+  color: inherit;
+  border-radius: 6px;
+  transition: background 0.2s;
+}
+
+.expand-btn svg {
+  width: 18px;
+  height: 18px;
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.expand-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+/* Show expand btn and hide collapse btn when collapsed */
+.sidebar.collapsed .expand-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.sidebar.collapsed .collapse-btn {
+  display: none;
+}

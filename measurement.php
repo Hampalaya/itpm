@@ -1,3 +1,14 @@
+<?php
+// 1. START SESSION AT THE VERY TOP
+session_start();
+// Optional: Redirect if not logged in
+if (!isset($_SESSION['user_id'])) {
+    header('Location: index.php');
+    exit;
+}
+?>
+
+
 <!DOCTYPE html>
 <html lang="en">
 <head>

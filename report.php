@@ -16,7 +16,7 @@ if (!isset($_SESSION['user_id'])) {
     <title>FEED System - Reports</title>
     
     <!-- External CSS -->
-    <link rel="stylesheet" href="css/reports.css" />
+    <link rel="stylesheet" href="css/report.css" />
     <link rel="stylesheet" href="css/sidebar.css" />
     
     <!-- External Fonts -->
@@ -31,8 +31,9 @@ if (!isset($_SESSION['user_id'])) {
       <!-- Navbar removed as requested -->
        <?php include 'includes/sidebar.php'; ?>
 
-      <div class="page-content">
-        <div class="page-header">
+      <div class="main-content-wrapper" id="mainWrapper">
+        <main class="page-content main-content">
+          <div class="page-header">
           <h1>Reports</h1>
           <p>Generate and export program reports</p>
         </div>
@@ -367,6 +368,7 @@ if (!isset($_SESSION['user_id'])) {
             </div>
           </div>
         </div>
+        </main>
       </div>
     </div>
 

@@ -31,9 +31,9 @@ if (!isset($_SESSION['user_id'])) {
       <!-- Navbar removed as requested -->
        <?php include 'includes/sidebar.php'; ?>
 
-      <!-- Page Content -->
-      <div class="page-content">
-        <!-- Page Header -->
+      <div class="main-content-wrapper" id="mainWrapper">
+        <main class="page-content main-content">
+          <!-- Page Header -->
         <div class="page-header">
           <div>
             <h1>Nutritional Status</h1>
@@ -196,6 +196,7 @@ if (!isset($_SESSION['user_id'])) {
             </table>
           </div>
         </div>
+        </main>
       </div>
     </div>
 

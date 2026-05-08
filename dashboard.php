@@ -33,8 +33,11 @@ if (!isset($_SESSION['user_id'])) {
   <body>
     <!-- Sidebar -->
     <?php include 'includes/sidebar.php'; ?>
-    <!-- Main Content -->
-    <main class="main-content">
+
+    <!-- Main Content Wrapper -->
+    <div class="main-content-wrapper" id="mainWrapper">
+      <!-- Main Content -->
+      <main class="main-content">
       <!-- Header -->
       <div class="header animate-in">
         <div class="header-left">
@@ -565,6 +568,7 @@ if (!isset($_SESSION['user_id'])) {
       <span class="toast-message" id="toastMessage"
         >Action completed successfully</span
       >
+    </div>
     </div>
   </body>
 </html>

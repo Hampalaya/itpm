@@ -31,7 +31,8 @@ if (!isset($_SESSION['user_id'])) {
       <!-- Navbar removed as requested -->
       <?php include 'includes/sidebar.php'; ?>
 
-      <div class="page-content">
+      <div class="main-content-wrapper" id="mainWrapper">
+        <main class="page-content main-content">
         <div class="page-header">
           <div>
             <h1>Data Validation</h1>
@@ -94,6 +95,7 @@ if (!isset($_SESSION['user_id'])) {
             </div>
           </div>
         </div>
+        </main>
       </div>
     </div>
 

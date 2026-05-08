@@ -26,8 +26,7 @@
 }
 
 .sidebar.collapsed:hover {
-  width: 280px;
-  box-shadow: 8px 0 30px rgba(0, 0, 0, 0.1);
+  width: 80px;
 }
 
 /* Header */
@@ -57,10 +56,9 @@
 }
 
 .sidebar.collapsed:hover .header-left {
-  opacity: 1;
-  gap: 12px;
-  pointer-events: auto;
-  transition-delay: 0.1s;
+  opacity: 0;
+  gap: 0;
+  pointer-events: none;
 }
 
 .header-icon {
@@ -120,10 +118,9 @@
 }
 
 .sidebar.collapsed:hover .collapse-btn {
-  opacity: 1;
-  pointer-events: auto;
-  transform: rotate(0deg);
-  transition-delay: 0.15s;
+  opacity: 0;
+  pointer-events: none;
+  transform: rotate(180deg);
 }
 
 .collapse-btn:hover {
@@ -222,10 +219,9 @@
 }
 
 .sidebar.collapsed:hover .nav-label {
-  opacity: 1;
-  transform: translateX(0);
-  pointer-events: auto;
-  transition-delay: 0.1s;
+  opacity: 0;
+  transform: translateX(-10px);
+  pointer-events: none;
 }
 
 /* Footer */
@@ -276,9 +272,8 @@
 }
 
 .sidebar.collapsed:hover .user-info {
-  opacity: 1;
-  pointer-events: auto;
-  transition-delay: 0.1s;
+  opacity: 0;
+  pointer-events: none;
 }
 
 .user-info .user-name {
@@ -305,9 +300,8 @@
 }
 
 .sidebar.collapsed:hover .user-dropdown {
-  opacity: 1;
-  pointer-events: auto;
-  transition-delay: 0.1s;
+  opacity: 0;
+  pointer-events: none;
 }
 
 .user-dropdown svg {
@@ -322,12 +316,14 @@
 .main-content-wrapper {
   flex: 1;
   margin-left: 280px;
-  transition: margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  width: calc(100% - 280px);
+  transition: margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1), width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   min-height: 100vh;
 }
 
 .main-content-wrapper.expanded {
   margin-left: 80px;
+  width: calc(100% - 80px);
 }
 
 .main-content {
@@ -446,10 +442,12 @@
 
   .main-content-wrapper {
     margin-left: 0;
+    width: 100%;
   }
 
   .main-content-wrapper.expanded {
     margin-left: 0;
+    width: 100%;
   }
 
   .collapse-btn {

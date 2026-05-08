@@ -31,9 +31,10 @@ if (!isset($_SESSION['user_id'])) {
       <!-- Sidebar -->
       <?php include 'includes/sidebar.php'; ?>
 
-      <!-- Main Content -->
-      <main class="main-content main-content-wrapper" id="mainWrapper">
-        <!-- Page Header -->
+      <!-- Main Content Wrapper -->
+      <div class="main-content-wrapper" id="mainWrapper">
+        <main class="main-content">
+          <!-- Page Header -->
         <div class="page-header">
           <h1 class="page-title">Student Profiles</h1>
           <p class="page-subtitle">Manage student information and beneficiary status</p>
@@ -312,6 +313,7 @@ if (!isset($_SESSION['user_id'])) {
           </div>
         </div>
       </main>
+    </div>
     </div>
   </body>
 </html>

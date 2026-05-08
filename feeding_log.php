@@ -31,9 +31,9 @@ if (!isset($_SESSION['user_id'])) {
       <!-- Navbar removed as requested -->
        <?php include 'includes/sidebar.php'; ?>
 
-      <!-- Page Content -->
-      <div class="page-content">
-        <!-- Page Header -->
+      <div class="main-content-wrapper" id="mainWrapper">
+        <main class="page-content main-content">
+          <!-- Page Header -->
         <div class="page-header">
           <h1>Feeding Log</h1>
           <p>
@@ -310,6 +310,7 @@ if (!isset($_SESSION['user_id'])) {
             </div>
           </div>
         </div>
+        </main>
       </div>
     </div>
 

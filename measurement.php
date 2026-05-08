@@ -24,8 +24,10 @@ if (!isset($_SESSION['user_id'])) {
   <!-- Sidebar -->
   <?php include 'includes/sidebar.php'; ?>
 
-  <!-- Main Content -->
-  <main class="main-content">
+  <!-- Main Content Wrapper -->
+  <div class="main-content-wrapper" id="mainWrapper">
+    <!-- Main Content -->
+    <main class="main-content">
 
     <!-- Page Header -->
     <div class="page-header">
@@ -201,5 +203,6 @@ if (!isset($_SESSION['user_id'])) {
     </div>
 
   </main>
+  </div>
 </body>
 </html>

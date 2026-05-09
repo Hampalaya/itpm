@@ -1060,7 +1060,64 @@ input:checked + .toggle-slider::before { transform: translateX(16px); }
 .validation-title   { font-weight: 600; color: var(--text-primary); margin-bottom: 4px; }
 .validation-desc    { font-size: 13px; color: var(--text-secondary); margin-bottom: 8px; }
 .validation-meta    { display: flex; gap: 12px; font-size: 12px; color: var(--text-muted); }
-.validation-actions { display: flex; gap: 8px; }
+.validation-actions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.validation-actions .btn-sm {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 84px;
+  border-radius: 999px;
+  padding: 8px 14px;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1;
+  text-decoration: none;
+  transition:
+    transform 0.15s ease,
+    box-shadow 0.15s ease,
+    background-color 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease;
+}
+
+.validation-actions .btn-sm:hover {
+  transform: translateY(-1px);
+}
+
+.validation-actions .btn-sm.primary {
+  background: linear-gradient(135deg, var(--success), #059669);
+  color: #fff;
+  border: 1px solid transparent;
+  box-shadow: 0 8px 18px rgba(16, 185, 129, 0.18);
+}
+
+.validation-actions .btn-sm.primary:hover {
+  background: linear-gradient(135deg, #059669, #047857);
+  box-shadow: 0 10px 20px rgba(16, 185, 129, 0.24);
+}
+
+.validation-actions .btn-sm:not(.primary) {
+  background: var(--card-bg);
+  color: var(--text-secondary);
+  border: 1px solid var(--border);
+}
+
+.validation-actions .btn-sm:not(.primary):hover {
+  background: var(--border-light);
+  color: var(--text-primary);
+  border-color: var(--text-muted);
+}
+
+.validation-actions .btn-sm:focus-visible {
+  outline: 3px solid rgba(13, 148, 136, 0.18);
+  outline-offset: 2px;
+}
 
 .priority-badge {
   padding: 2px 8px;

@@ -33,6 +33,43 @@ setTimeout(() => {
  * Plain JS, no frameworks
  */
 
+// ===== LIVE SEARCH / REAL-TIME FILTERING =====
+function liveSearchTable() {
+  const searchInput = document.getElementById('liveSearch');
+  const table = document.querySelector('table tbody');
+  const rows = table.querySelectorAll('tbody tr');
+  const searchTerm = searchInput.value.toLowerCase().trim();
+
+  rows.forEach(row => {
+    // Skip the "no students found" row
+    if (row.textContent.includes('No students found')) {
+      row.style.display = '';
+      return;
+    }
+
+    // Get text content from LRN and Full Name columns
+    const lrnCell = row.cells[0]?.textContent.toLowerCase().trim() || '';
+    const nameCell = row.cells[1]?.textContent.toLowerCase().trim() || '';
+
+    // Show row if search term matches either LRN or name, or if search is empty
+    if (searchTerm === '' || lrnCell.includes(searchTerm) || nameCell.includes(searchTerm)) {
+      row.style.display = '';
+    } else {
+      row.style.display = 'none';
+    }
+  });
+}
+
+// Attach live search listener
+document.addEventListener('DOMContentLoaded', function() {
+  const searchInput = document.getElementById('liveSearch');
+  if (searchInput) {
+    searchInput.addEventListener('input', liveSearchTable);
+    // Initial filter on page load if there's a search term
+    liveSearchTable();
+  }
+});
+
 document.addEventListener('DOMContentLoaded', function() {
   const modal = document.getElementById('studentModal');
   const addBtn = document.querySelector('.header-actions .btn-primary');

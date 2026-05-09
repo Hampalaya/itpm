@@ -189,14 +189,13 @@ $showAddModal = isset($_GET['add']) || (isset($_POST['action']) && $_POST['actio
 
         <!-- Search & Filters -->
         <div class="controls-bar">
-          <form method="get" action="" class="search-wrapper">
+          <div class="search-wrapper">
             <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
               <circle cx="11" cy="11" r="8" />
               <line x1="21" y1="21" x2="16.65" y2="16.65" />
             </svg>
-            <input type="text" name="search" class="search-input" placeholder="Search by name or LRN..." value="<?= htmlspecialchars($search) ?>" />
-            <button type="submit" class="btn-search">Search</button>
-          </form>
+            <input type="text" id="liveSearch" class="search-input" placeholder="Search by name or LRN..." value="<?= htmlspecialchars($search) ?>" />
+          </div>
           <button type="button" class="filter-btn" id="toggleFilters">
             <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
               <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3" />

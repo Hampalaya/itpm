@@ -138,7 +138,7 @@ if ($sectionFilter) {
   $where[] = "s.section = ?";
   $params[] = $sectionFilter;
 }
-if (in_array($_SESSION['role'], ['teacher', 'encoder']) && !empty($_SESSION['assigned_section'])) {
+if (($_SESSION['role'] ?? '') === 'encoder' && !empty($_SESSION['assigned_section'])) {
   $where[] = "s.section = ?";
   $params[] = $_SESSION['assigned_section'];
 }
@@ -157,7 +157,7 @@ $measurements = $stmt->fetchAll();
 // Students for dropdown
 $studentWhere = [];
 $studentParams = [];
-if (in_array($_SESSION['role'], ['teacher', 'encoder']) && !empty($_SESSION['assigned_section'])) {
+if (($_SESSION['role'] ?? '') === 'encoder' && !empty($_SESSION['assigned_section'])) {
   $studentWhere[] = "section = ?";
   $studentParams[] = $_SESSION['assigned_section'];
 }

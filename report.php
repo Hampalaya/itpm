@@ -16,21 +16,28 @@ $gradeFilter = $_GET['grade'] ?? $_POST['grade'] ?? 'all';
 
 // Build WHERE clauses for role-based and grade filtering
 $where = []; $params = [];
-if (in_array($_SESSION['role'], ['teacher','encoder']) && !empty($_SESSION['assigned_section'])) {
+if (($_SESSION['role'] ?? '') === 'encoder' && !empty($_SESSION['assigned_section'])) {
     $where[] = "s.section = ?"; $params[] = $_SESSION['assigned_section'];
 }
 if ($gradeFilter !== 'all') {
     $where[] = "s.grade_level = ?"; $params[] = (int)$gradeFilter;
 }
 $whereClause = $where ? "WHERE " . implode(' AND ', $where) : '';
+$whereClauseAnd = $whereClause ? $whereClause . " AND" : "WHERE";
 
 // ========== DYNAMIC STATS ==========
-$stats = [
-    'total' => $pdo->query("SELECT COUNT(*) FROM students $whereClause")->fetchColumn(),
-    'beneficiaries' => $pdo->query("SELECT COUNT(DISTINCT student_id) FROM measurements $whereClause ?")->fetchColumn(), // Simplified
-    'measurements' => $pdo->query("SELECT COUNT(*) FROM measurements m JOIN students s ON m.student_id = s.id $whereClause")->fetchColumn(),
-    'attendance' => $pdo->query("SELECT COUNT(*) FROM feeding_logs fl JOIN students s ON fl.student_id = s.id $whereClause")->fetchColumn(),
+$stats = [];
+$statQueries = [
+  'total' => "SELECT COUNT(*) FROM students s $whereClause",
+  'beneficiaries' => "SELECT COUNT(DISTINCT m.student_id) FROM measurements m JOIN students s ON m.student_id = s.id $whereClause",
+  'measurements' => "SELECT COUNT(*) FROM measurements m JOIN students s ON m.student_id = s.id $whereClause",
+  'attendance' => "SELECT COUNT(*) FROM feeding_logs fl JOIN students s ON fl.student_id = s.id $whereClause",
 ];
+foreach ($statQueries as $key => $sql) {
+  $stmt = $pdo->prepare($sql);
+  $stmt->execute($params);
+  $stats[$key] = $stmt->fetchColumn();
+}
 
 // ========== REPORT GENERATION LOGIC ==========
 if (isset($_GET['export']) || isset($_POST['generate'])) {
@@ -45,8 +52,9 @@ if (isset($_GET['export']) || isset($_POST['generate'])) {
             $sql = "SELECT CONCAT(s.first_name,' ',s.last_name) as name, s.grade_level, s.section, 
                            m.bmi, m.nutritional_status, m.measured_date
                     FROM measurements m JOIN students s ON m.student_id = s.id 
-                    $whereClause AND m.type = 'endline' ORDER BY s.last_name";
-            foreach ($pdo->query($sql)->fetchAll() as $row) {
+                    $whereClauseAnd m.type = 'endline' ORDER BY s.last_name";
+            $stmt = $pdo->prepare($sql); $stmt->execute($params);
+            foreach ($stmt->fetchAll() as $row) {
                 fputcsv($out, [$row['name'], "Grade {$row['grade_level']}-{$row['section']}", 
                              number_format($row['bmi'],2), $row['nutritional_status'], $row['measured_date']]);
             }
@@ -57,7 +65,7 @@ if (isset($_GET['export']) || isset($_POST['generate'])) {
             $sql = "SELECT fl.feeding_date, CONCAT(s.first_name,' ',s.last_name) as name, s.grade_level, s.section,
                            fl.is_present, fl.meal_served, fl.remarks
                     FROM feeding_logs fl JOIN students s ON fl.student_id = s.id 
-                    $whereClause AND fl.feeding_date BETWEEN ? AND ? ORDER BY fl.feeding_date DESC, s.last_name";
+                    $whereClauseAnd fl.feeding_date BETWEEN ? AND ? ORDER BY fl.feeding_date DESC, s.last_name";
             $stmt = $pdo->prepare($sql); $stmt->execute(array_merge($params, [$startDate, $endDate]));
             foreach ($stmt->fetchAll() as $row) {
                 fputcsv($out, [$row['feeding_date'], $row['name'], "Grade {$row['grade_level']}-{$row['section']}",
@@ -68,8 +76,9 @@ if (isset($_GET['export']) || isset($_POST['generate'])) {
         case 'beneficiary':
             fputcsv($out, ['LRN','Student','Grade/Section','Age','Sex','School Year','Enrollment Status']);
             $sql = "SELECT lrn, CONCAT(first_name,' ',last_name) as name, grade_level, section, age, sex, school_year, 'Active' as status
-                    FROM students $whereClause ORDER BY grade_level, section, last_name";
-            foreach ($pdo->query($sql)->fetchAll() as $row) {
+                    FROM students s $whereClause ORDER BY grade_level, section, last_name";
+            $stmt = $pdo->prepare($sql); $stmt->execute($params);
+            foreach ($stmt->fetchAll() as $row) {
                 fputcsv($out, [$row['lrn'], $row['name'], "Grade {$row['grade_level']}-{$row['section']}",
                              $row['age'], $row['sex'], $row['school_year'], $row['status']]);
             }
@@ -83,7 +92,8 @@ if (isset($_GET['export']) || isset($_POST['generate'])) {
                     JOIN students s ON m.student_id = s.id 
                     LEFT JOIN users u ON m.recorded_by = u.id
                     $whereClause ORDER BY m.measured_date DESC, s.last_name";
-            foreach ($pdo->query($sql)->fetchAll() as $row) {
+            $stmt = $pdo->prepare($sql); $stmt->execute($params);
+            foreach ($stmt->fetchAll() as $row) {
                 fputcsv($out, [$row['name'], "Grade {$row['grade_level']}-{$row['section']}", ucfirst($row['type']),
                              $row['measured_date'], $row['height_cm'], $row['weight_kg'], 
                              number_format($row['bmi'],2), $row['nutritional_status'], $row['recorder'] ?? 'System']);
@@ -99,9 +109,10 @@ if (isset($_GET['export']) || isset($_POST['generate'])) {
                     JOIN measurements base ON s.id = base.student_id AND base.type = 'baseline'
                     JOIN measurements endm ON s.id = endm.student_id AND endm.type = 'endline'
                     $whereClause ORDER BY s.last_name";
-            foreach ($pdo->query($sql)->fetchAll() as $row) {
-                $progress = ($row['base_status'] === $row['end_status']) ? 'Maintained' : 
-                           (strpos($row['base_status'],'Underweight') !== false && $row['end_status'] === 'Normal') ? 'Improved' : 'Changed';
+            $stmt = $pdo->prepare($sql); $stmt->execute($params);
+            foreach ($stmt->fetchAll() as $row) {
+                $progress = ($row['base_status'] === $row['end_status']) ? 'Maintained' :
+                           ((strpos($row['base_status'], 'Underweight') !== false && $row['end_status'] === 'Normal') ? 'Improved' : 'Changed');
                 fputcsv($out, [$row['name'], "Grade {$row['grade_level']}-{$row['section']}",
                              number_format($row['base_bmi'],2), $row['base_status'],
                              number_format($row['end_bmi'],2), $row['end_status'], $progress]);
@@ -112,8 +123,8 @@ if (isset($_GET['export']) || isset($_POST['generate'])) {
             fputcsv($out, ['Month','Total Students','Measurements Taken','Avg Attendance Rate','Top Improvement']);
             // Simplified monthly aggregation
             $sql = "SELECT DATE_FORMAT(measured_date, '%Y-%m') as month, COUNT(DISTINCT student_id) as students, COUNT(*) as measurements
-                    FROM measurements m JOIN students s ON m.student_id = s.id $whereClause 
-                    AND measured_date BETWEEN ? AND ? GROUP BY month ORDER BY month";
+                    FROM measurements m JOIN students s ON m.student_id = s.id $whereClauseAnd measured_date BETWEEN ? AND ?
+                    GROUP BY month ORDER BY month";
             $stmt = $pdo->prepare($sql); $stmt->execute(array_merge($params, [$startDate, $endDate]));
             foreach ($stmt->fetchAll() as $row) {
                 fputcsv($out, [$row['month'], $row['students'], $row['measurements'], 'N/A', 'See detailed reports']);
@@ -122,7 +133,7 @@ if (isset($_GET['export']) || isset($_POST['generate'])) {
     }
     
     fclose($out);
-    logAudit($pdo, 'export', 'reports', 0, "Exported {$reportType} report");
+    logAudit($pdo, 'insert', 'reports', 0, "Exported {$reportType} report");
     exit;
 }
 ?>

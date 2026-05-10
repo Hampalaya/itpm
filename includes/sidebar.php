@@ -89,6 +89,15 @@ $currentPage = basename($_SERVER['PHP_SELF'], '.php');
       <span class="nav-label">Reports</span>
     </a>
 
+    <?php if (($_SESSION['role'] ?? '') === 'admin'): ?>
+    <a href="user_management.php" class="nav-item <?= $currentPage === 'user_management' ? 'active' : '' ?>" data-page="user-management">
+      <span class="nav-icon">
+        <svg viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 11v4"/><path d="M20 13h4"/></svg>
+      </span>
+      <span class="nav-label">User Management</span>
+    </a>
+    <?php endif; ?>
+
   </div>
 
   <!-- Footer: User Profile -->

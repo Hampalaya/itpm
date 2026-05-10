@@ -12,7 +12,7 @@ if (!isset($_SESSION['user_id'])) {
 $where = []; $params = [];
 
 // Role-based filter
-if (in_array($_SESSION['role'], ['teacher','encoder']) && !empty($_SESSION['assigned_section'])) {
+if (($_SESSION['role'] ?? '') === 'encoder' && !empty($_SESSION['assigned_section'])) {
     $where[] = "s.section = ?"; $params[] = $_SESSION['assigned_section'];
 }
 

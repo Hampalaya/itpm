@@ -15,7 +15,20 @@ body {
   background-color: #f1f3f5;
   color: #1a1a2e;
   min-height: 100vh;
-  padding: 24px;
+  padding: 0;
+}
+
+.app-container {
+  min-height: 100vh;
+}
+
+.main-content {
+  display: block;
+  min-height: 100vh;
+  padding: 24px 40px;
+  max-width: 1400px;
+  margin: 0 auto;
+  width: 100%;
 }
 
 .container {

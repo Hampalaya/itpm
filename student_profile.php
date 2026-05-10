@@ -9,29 +9,14 @@ if (!isset($_SESSION['user_id'])) {
   exit;
 }
 
-// ========== HANDLE POST ACTIONS (Add/Edit/Delete) ==========
+// ========== HANDLE POST ACTIONS (Add/Edit) ==========
 $message = '';
 $messageType = '';
 
-// DELETE
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'delete') {
-  if ($_SESSION['role'] !== 'admin') {
-    $message = 'Only admins can delete records.';
-    $messageType = 'error';
-  } else {
-    $id = (int)($_POST['student_id'] ?? 0);
-    if ($id > 0) {
-      $stmt = $pdo->prepare("DELETE FROM students WHERE id = ?");
-      $stmt->execute([$id]);
-      logAudit($pdo, 'delete', 'students', $id, 'Deleted student');
-      $message = 'Student deleted.';
-      $messageType = 'success';
-    }
-  }
-}
-
 // ADD or UPDATE
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && in_array($_POST['action'], ['add', 'update'])) {
+  // Only process LRN if it's explicitly allowed. In Edit mode, we don't update LRN if it might be disabled.
+  // Actually, we'll process it but the frontend will send it via a hidden input or active readonly field.
   $lrn = trim($_POST['lrn'] ?? '');
   $first = trim($_POST['first_name'] ?? '');
   $middle = trim($_POST['middle_name'] ?? '');
@@ -68,6 +53,75 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && in_array
       $messageType = 'success';
     }
   }
+}
+
+// ========== EXPORT LOGIC (Must run before HTML/Headers) ==========
+if (isset($_GET['export'])) {
+  $search = trim($_GET['search'] ?? '');
+  $gradeFilter = $_GET['grade_filter'] ?? '';
+  $sectionFilter = $_GET['section_filter'] ?? '';
+  $sexFilter = $_GET['sex_filter'] ?? '';
+  $schoolYearFilter = $_GET['school_year_filter'] ?? '';
+
+  $where = [];
+  $params = [];
+
+  if ($search) {
+    $where[] = "(CONCAT(first_name,' ',COALESCE(middle_name,''),' ',last_name) LIKE ? OR lrn LIKE ?)";
+    $params = array_merge($params, ["%$search%", "%$search%"]);
+  }
+  if ($gradeFilter) {
+    $where[] = "grade_level = ?";
+    $params[] = $gradeFilter;
+  }
+  if ($sectionFilter) {
+    $where[] = "section = ?";
+    $params[] = $sectionFilter;
+  }
+  if ($sexFilter) {
+    $where[] = "sex = ?";
+    $params[] = $sexFilter;
+  }
+  if ($schoolYearFilter) {
+    $where[] = "school_year = ?";
+    $params[] = $schoolYearFilter;
+  }
+  if (($_SESSION['role'] ?? '') === 'encoder' && !empty($_SESSION['assigned_section'])) {
+    $where[] = "section = ?";
+    $params[] = $_SESSION['assigned_section'];
+  }
+
+  $sql = "SELECT lrn, first_name, middle_name, last_name, grade_level, section, age, sex, school_year, created_at FROM students";
+  if ($where) $sql .= " WHERE " . implode(' AND ', $where);
+  $sql .= " ORDER BY grade_level, section, last_name";
+
+  $stmt = $pdo->prepare($sql);
+  $stmt->execute($params);
+  $exportStudents = $stmt->fetchAll();
+
+  header('Content-Type: text/csv');
+  header('Content-Disposition: attachment; filename="students_roster_' . date('Y-m-d') . '.csv"');
+  $out = fopen('php://output', 'w');
+  
+  // Header row
+  fputcsv($out, ['LRN', 'First Name', 'Middle Name', 'Last Name', 'Grade', 'Section', 'Age', 'Sex', 'School Year', 'Date Encoded']);
+  
+  foreach ($exportStudents as $s) {
+    fputcsv($out, [
+      $s['lrn'], 
+      $s['first_name'], 
+      $s['middle_name'], 
+      $s['last_name'], 
+      $s['grade_level'], 
+      $s['section'], 
+      $s['age'], 
+      $s['sex'], 
+      $s['school_year'],
+      date('Y-m-d', strtotime($s['created_at']))
+    ]);
+  }
+  fclose($out);
+  exit;
 }
 
 // ========== FETCH & FILTER STUDENTS ==========
@@ -117,12 +171,24 @@ $stmt = $pdo->prepare($sql);
 $stmt->execute($params);
 $students = $stmt->fetchAll();
 
+// Determine if an LRN is currently invalid or duplicated (to unlock for encoders)
+function isLrnIssue($pdo, $lrn, $studentId) {
+    if (!$lrn || strlen(trim($lrn)) !== 12) return true;
+    $chk = $pdo->prepare("SELECT COUNT(*) FROM students WHERE lrn = ?");
+    $chk->execute([$lrn]);
+    return $chk->fetchColumn() > 1; // Duplicate exists
+}
+
 // For Edit modal pre-fill
 $edit = null;
+$hasLrnIssue = false;
 if (isset($_GET['edit'])) {
   $stmt = $pdo->prepare("SELECT * FROM students WHERE id = ?");
   $stmt->execute([(int)$_GET['edit']]);
   $edit = $stmt->fetch();
+  if ($edit) {
+      $hasLrnIssue = isLrnIssue($pdo, $edit['lrn'], $edit['id']);
+  }
 }
 // For Add modal trigger
 $showAddModal = isset($_GET['add']) || (isset($_POST['action']) && $_POST['action'] === 'add' && $messageType === 'error');
@@ -162,6 +228,7 @@ $showAddModal = isset($_GET['add']) || (isset($_POST['action']) && $_POST['actio
 
         <!-- Header Actions -->
         <div class="header-actions">
+          <?php if ($_SESSION['role'] === 'admin'): ?>
           <!-- Export: triggers CSV download -->
           <form method="get" action="" style="display:inline;">
             <input type="hidden" name="export" value="1">
@@ -177,6 +244,7 @@ $showAddModal = isset($_GET['add']) || (isset($_POST['action']) && $_POST['actio
               Export
             </button>
           </form>
+          <?php endif; ?>
           <!-- Add Student: opens modal via URL param -->
           <a href="?add=1" class="btn btn-primary">
             <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
@@ -287,19 +355,6 @@ $showAddModal = isset($_GET['add']) || (isset($_POST['action']) && $_POST['actio
                             </svg>
                             Edit
                           </a>
-                          <?php if ($_SESSION['role'] === 'admin'): ?>
-                            <form method="post" style="display:inline;" onsubmit="return confirm('Delete this student?');">
-                              <input type="hidden" name="action" value="delete">
-                              <input type="hidden" name="student_id" value="<?= $s['id'] ?>">
-                              <button type="submit" class="action-btn delete">
-                                <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                                  <polyline points="3 6 5 6 21 6" />
-                                  <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-                                </svg>
-                                Delete
-                              </button>
-                            </form>
-                          <?php endif; ?>
                         </div>
                       </td>
                     </tr>
@@ -324,20 +379,41 @@ $showAddModal = isset($_GET['add']) || (isset($_POST['action']) && $_POST['actio
         <div class="form-row">
           <div class="form-group">
             <label>LRN *</label>
-            <input
-              type="text"
-              name="lrn"
-              value="<?= htmlspecialchars($edit['lrn'] ?? '') ?>"
-              required
-              maxlength="12"
-              pattern="[0-9]{12}"
-              title="Enter exactly 12 digits (no letters or spaces)"
-              inputmode="numeric"
-              autocomplete="off"
-              placeholder="123456789012"
-              oninput="this.value = this.value.replace(/[^0-9]/g, '').slice(0,12)"
-              class="form-input">
-            <small class="field-hint">DepEd LRN: 12 digits, numbers only</small>
+            <?php 
+              // Admins can always edit. Encoders can edit IF it's a new add, OR if the current LRN has a data validation issue (like a duplicate or missing digits)
+              $canEditLrn = (!isset($edit) || $_SESSION['role'] === 'admin' || $hasLrnIssue); 
+            ?>
+            <?php if (!$canEditLrn): ?>
+              <!-- In Edit mode, make LRN read-only for non-admins if it's already valid -->
+              <input
+                type="text"
+                name="lrn"
+                value="<?= htmlspecialchars($edit['lrn'] ?? '') ?>"
+                readonly
+                class="form-input"
+                style="background-color: #f3f4f6; cursor: not-allowed;"
+                title="Only Administrators can edit an LRN once created">
+              <small class="field-hint">Only Administrators can modify a valid LRN.</small>
+            <?php else: ?>
+              <input
+                type="text"
+                name="lrn"
+                value="<?= htmlspecialchars($edit['lrn'] ?? '') ?>"
+                required
+                maxlength="12"
+                pattern="[0-9]{12}"
+                title="Enter exactly 12 digits (no letters or spaces)"
+                inputmode="numeric"
+                autocomplete="off"
+                placeholder="123456789012"
+                oninput="this.value = this.value.replace(/[^0-9]/g, '').slice(0,12)"
+                class="form-input">
+              <?php if ($edit && $hasLrnIssue && $_SESSION['role'] !== 'admin'): ?>
+                <small class="field-hint" style="color: #e7000b;">Unlocked to fix data validation issue.</small>
+              <?php else: ?>
+                <small class="field-hint">DepEd LRN: 12 digits, numbers only</small>
+              <?php endif; ?>
+            <?php endif; ?>
 
           </div>
           <div class="form-group">

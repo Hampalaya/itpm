@@ -42,7 +42,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_attendance'])) {
 
 // Fetch students for this date (with existing logs)
 $where = []; $params = [];
-if (in_array($_SESSION['role'], ['teacher','encoder']) && !empty($_SESSION['assigned_section'])) {
+if (($_SESSION['role'] ?? '') === 'encoder' && !empty($_SESSION['assigned_section'])) {
     $where[] = "s.section = ?"; $params[] = $_SESSION['assigned_section'];
 }
 $search = trim($_GET['search'] ?? '');

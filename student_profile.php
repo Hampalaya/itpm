@@ -103,8 +103,8 @@ if ($schoolYearFilter) {
   $params[] = $schoolYearFilter;
 }
 
-// Role-based: teacher sees only their assigned_section
-if (in_array($_SESSION['role'], ['teacher', 'coordinator']) && !empty($_SESSION['assigned_section'])) {
+// Role-based: encoder sees only their assigned_section when assigned.
+if (($_SESSION['role'] ?? '') === 'encoder' && !empty($_SESSION['assigned_section'])) {
   $where[] = "section = ?";
   $params[] = $_SESSION['assigned_section'];
 }

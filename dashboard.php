@@ -161,18 +161,21 @@ $trendRows = rowsValue(
     $measurementParams
 );
 
+// Only fetch recent activities if the user is an admin
 $activityRows = [];
-try {
-    $activityRows = rowsValue(
-        $pdo,
-        "SELECT a.action, a.table_name, a.description, a.created_at, u.full_name
-         FROM audit_logs a
-         LEFT JOIN users u ON a.user_id = u.id
-         ORDER BY a.created_at DESC
-         LIMIT 6"
-    );
-} catch (PDOException $e) {
-    error_log('Dashboard activity query failed: ' . $e->getMessage());
+if ($_SESSION['role'] === 'admin') {
+    try {
+        $activityRows = rowsValue(
+            $pdo,
+            "SELECT a.action, a.table_name, a.description, a.created_at, u.full_name
+             FROM audit_logs a
+             LEFT JOIN users u ON a.user_id = u.id
+             ORDER BY a.created_at DESC
+             LIMIT 6"
+        );
+    } catch (PDOException $e) {
+        error_log('Dashboard activity query failed: ' . $e->getMessage());
+    }
 }
 
 $chartData = [
@@ -313,6 +316,7 @@ $chartData = [
           <div class="trend-container"><canvas id="trendChart"></canvas></div>
         </div>
 
+        <?php if ($_SESSION['role'] === 'admin'): ?>
         <div class="recent-activities animate-in delay-6">
           <h3>Recent Activities</h3>
           <div class="activity-list">
@@ -341,6 +345,7 @@ $chartData = [
             <?php endif; ?>
           </div>
         </div>
+        <?php endif; ?>
       </main>
     </div>
 

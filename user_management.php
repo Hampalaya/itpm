@@ -100,7 +100,7 @@ if ($search) {
     $where[] = "(full_name LIKE ? OR username LIKE ?)";
     $params = array_merge($params, ["%$search%", "%$search%"]);
 }
-$sql = "SELECT id, username, role, full_name, assigned_section, is_active, created_at FROM users";
+$sql = "SELECT id, username, role, full_name, assigned_section, is_active, created_at, last_active FROM users";
 if ($where) $sql .= " WHERE " . implode(' AND ', $where);
 $sql .= " ORDER BY full_name";
 $stmt = $pdo->prepare($sql); $stmt->execute($params);
@@ -232,12 +232,13 @@ $currentUser = $currentUser->fetch();
                 <th>Role</th>
                 <th>Section</th>
                 <th>Status</th>
+                <th>Last Active</th>
                 <th>Actions</th>
               </tr>
             </thead>
             <tbody id="userTableBody">
               <?php if (empty($users)): ?>
-                <tr><td colspan="6" style="text-align:center;padding:2rem;color:#6b7a8d">No users found.</td></tr>
+                <tr><td colspan="7" style="text-align:center;padding:2rem;color:#6b7a8d">No users found.</td></tr>
               <?php else: ?>
                 <?php foreach ($users as $u):
                   $userJson = htmlspecialchars(json_encode($u, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP), ENT_QUOTES, 'UTF-8');
@@ -257,6 +258,14 @@ $currentUser = $currentUser->fetch();
                   <td><span style="padding:4px 10px;border-radius:999px;font-size:11px;font-weight:600;background:#f3f4f6;color:#6b7280"><?= ucfirst($u['role']) ?></span></td>
                   <td><?= htmlspecialchars($u['assigned_section'] ?? '—') ?></td>
                   <td><span class="status-badge <?= $u['is_active']?'status-active':'status-inactive' ?>"><?= $u['is_active']?'Active':'Inactive' ?></span></td>
+                  <td>
+                    <?php if ($u['last_active']): ?>
+                      <div style="font-size:12px;color:#374151;font-weight:500;"><?= date('M j, Y', strtotime($u['last_active'])) ?></div>
+                      <div style="font-size:11px;color:#6b7280;"><?= date('g:i A', strtotime($u['last_active'])) ?></div>
+                    <?php else: ?>
+                      <span style="font-size:12px;color:#9ca3af;font-style:italic">Never</span>
+                    <?php endif; ?>
+                  </td>
                   <td>
                     <button type="button" class="action-btn edit js-edit-user" data-user="<?= $userJson ?>">Edit</button>
                     <?php if ($u['id'] !== $_SESSION['user_id']): ?>

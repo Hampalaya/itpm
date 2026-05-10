@@ -224,7 +224,10 @@ $currentUser = $currentUser->fetch();
               <?php if (empty($users)): ?>
                 <tr><td colspan="6" style="text-align:center;padding:2rem;color:#6b7a8d">No users found.</td></tr>
               <?php else: ?>
-                <?php foreach ($users as $u): ?>
+                <?php foreach ($users as $u):
+                  $userJson = htmlspecialchars(json_encode($u, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP), ENT_QUOTES, 'UTF-8');
+                  $userNameAttr = htmlspecialchars($u['full_name'], ENT_QUOTES, 'UTF-8');
+                ?>
                 <tr>
                   <td>
                     <div style="display:flex;align-items:center;gap:10px">
@@ -240,9 +243,9 @@ $currentUser = $currentUser->fetch();
                   <td><?= htmlspecialchars($u['assigned_section'] ?? '—') ?></td>
                   <td><span class="status-badge <?= $u['is_active']?'status-active':'status-inactive' ?>"><?= $u['is_active']?'Active':'Inactive' ?></span></td>
                   <td>
-                    <button class="action-btn edit" onclick="openEditModal(<?= json_encode($u, JSON_HEX_APOS|JSON_HEX_QUOT) ?>)">Edit</button>
+                    <button type="button" class="action-btn edit js-edit-user" data-user="<?= $userJson ?>">Edit</button>
                     <?php if ($u['id'] !== $_SESSION['user_id']): ?>
-                    <button class="action-btn delete" onclick="openDeleteModal(<?= $u['id'] ?>, '<?= addslashes($u['full_name']) ?>')">Deactivate</button>
+                    <button type="button" class="action-btn delete js-delete-user" data-user-id="<?= (int)$u['id'] ?>" data-user-name="<?= $userNameAttr ?>">Deactivate</button>
                     <?php endif; ?>
                   </td>
                 </tr>
@@ -396,6 +399,22 @@ $currentUser = $currentUser->fetch();
   function closeDeleteModal() {
     deleteModal.classList.remove('active');
   }
+
+  document.querySelectorAll('.js-edit-user').forEach(button => {
+    button.addEventListener('click', () => {
+      try {
+        openEditModal(JSON.parse(button.dataset.user));
+      } catch (error) {
+        console.error('Unable to open user editor:', error);
+      }
+    });
+  });
+
+  document.querySelectorAll('.js-delete-user').forEach(button => {
+    button.addEventListener('click', () => {
+      openDeleteModal(button.dataset.userId, button.dataset.userName);
+    });
+  });
   
   // Close modals on overlay click or Escape
   [userModal, deleteModal].forEach(modal => {

@@ -9,29 +9,14 @@ if (!isset($_SESSION['user_id'])) {
   exit;
 }
 
-// ========== HANDLE POST ACTIONS (Add/Edit/Delete) ==========
+// ========== HANDLE POST ACTIONS (Add/Edit) ==========
 $message = '';
 $messageType = '';
 
-// DELETE
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'delete') {
-  if ($_SESSION['role'] !== 'admin') {
-    $message = 'Only admins can delete records.';
-    $messageType = 'error';
-  } else {
-    $id = (int)($_POST['student_id'] ?? 0);
-    if ($id > 0) {
-      $stmt = $pdo->prepare("DELETE FROM students WHERE id = ?");
-      $stmt->execute([$id]);
-      logAudit($pdo, 'delete', 'students', $id, 'Deleted student');
-      $message = 'Student deleted.';
-      $messageType = 'success';
-    }
-  }
-}
-
 // ADD or UPDATE
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && in_array($_POST['action'], ['add', 'update'])) {
+  // Only process LRN if it's explicitly allowed. In Edit mode, we don't update LRN if it might be disabled.
+  // Actually, we'll process it but the frontend will send it via a hidden input or active readonly field.
   $lrn = trim($_POST['lrn'] ?? '');
   $first = trim($_POST['first_name'] ?? '');
   $middle = trim($_POST['middle_name'] ?? '');
@@ -287,19 +272,6 @@ $showAddModal = isset($_GET['add']) || (isset($_POST['action']) && $_POST['actio
                             </svg>
                             Edit
                           </a>
-                          <?php if ($_SESSION['role'] === 'admin'): ?>
-                            <form method="post" style="display:inline;" onsubmit="return confirm('Delete this student?');">
-                              <input type="hidden" name="action" value="delete">
-                              <input type="hidden" name="student_id" value="<?= $s['id'] ?>">
-                              <button type="submit" class="action-btn delete">
-                                <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                                  <polyline points="3 6 5 6 21 6" />
-                                  <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-                                </svg>
-                                Delete
-                              </button>
-                            </form>
-                          <?php endif; ?>
                         </div>
                       </td>
                     </tr>
@@ -324,20 +296,33 @@ $showAddModal = isset($_GET['add']) || (isset($_POST['action']) && $_POST['actio
         <div class="form-row">
           <div class="form-group">
             <label>LRN *</label>
-            <input
-              type="text"
-              name="lrn"
-              value="<?= htmlspecialchars($edit['lrn'] ?? '') ?>"
-              required
-              maxlength="12"
-              pattern="[0-9]{12}"
-              title="Enter exactly 12 digits (no letters or spaces)"
-              inputmode="numeric"
-              autocomplete="off"
-              placeholder="123456789012"
-              oninput="this.value = this.value.replace(/[^0-9]/g, '').slice(0,12)"
-              class="form-input">
-            <small class="field-hint">DepEd LRN: 12 digits, numbers only</small>
+            <?php if ($edit && $_SESSION['role'] !== 'admin'): ?>
+              <!-- In Edit mode, make LRN read-only for non-admins -->
+              <input
+                type="text"
+                name="lrn"
+                value="<?= htmlspecialchars($edit['lrn'] ?? '') ?>"
+                readonly
+                class="form-input"
+                style="background-color: #f3f4f6; cursor: not-allowed;"
+                title="Only Administrators can edit an LRN once created">
+              <small class="field-hint">Only Administrators can modify the LRN.</small>
+            <?php else: ?>
+              <input
+                type="text"
+                name="lrn"
+                value="<?= htmlspecialchars($edit['lrn'] ?? '') ?>"
+                required
+                maxlength="12"
+                pattern="[0-9]{12}"
+                title="Enter exactly 12 digits (no letters or spaces)"
+                inputmode="numeric"
+                autocomplete="off"
+                placeholder="123456789012"
+                oninput="this.value = this.value.replace(/[^0-9]/g, '').slice(0,12)"
+                class="form-input">
+              <small class="field-hint">DepEd LRN: 12 digits, numbers only</small>
+            <?php endif; ?>
 
           </div>
           <div class="form-group">

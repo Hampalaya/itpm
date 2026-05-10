@@ -9,6 +9,58 @@ if (!isset($_SESSION['user_id'])) {
   exit;
 }
 
+// ========== EXPORT LOGIC (Must run before HTML/Headers) ==========
+if (isset($_GET['export'])) {
+  $search = trim($_GET['search'] ?? '');
+  $typeFilter = $_GET['type_filter'] ?? '';
+  $gradeFilter = $_GET['grade_filter'] ?? '';
+  $sectionFilter = $_GET['section_filter'] ?? '';
+
+  $where = [];
+  $params = [];
+  if ($search) {
+    $where[] = "(CONCAT(s.first_name,' ',s.last_name) LIKE ?)";
+    $params[] = "%$search%";
+  }
+  if ($typeFilter) {
+    $where[] = "m.type = ?";
+    $params[] = $typeFilter;
+  }
+  if ($gradeFilter) {
+    $where[] = "s.grade_level = ?";
+    $params[] = $gradeFilter;
+  }
+  if ($sectionFilter) {
+    $where[] = "s.section = ?";
+    $params[] = $sectionFilter;
+  }
+  if (($_SESSION['role'] ?? '') === 'encoder' && !empty($_SESSION['assigned_section'])) {
+    $where[] = "s.section = ?";
+    $params[] = $_SESSION['assigned_section'];
+  }
+
+  $sql = "SELECT m.*, s.first_name, s.last_name, s.grade_level, s.section, u.full_name as recorder_name
+          FROM measurements m
+          JOIN students s ON m.student_id = s.id
+          LEFT JOIN users u ON m.recorded_by = u.id";
+  if ($where) $sql .= " WHERE " . implode(' AND ', $where);
+  $sql .= " ORDER BY m.measured_date DESC, s.last_name";
+
+  $stmt = $pdo->prepare($sql);
+  $stmt->execute($params);
+  $exportMeasurements = $stmt->fetchAll();
+
+  header('Content-Type: text/csv');
+  header('Content-Disposition: attachment; filename="measurements_' . date('Y-m-d') . '.csv"');
+  $out = fopen('php://output', 'w');
+  fputcsv($out, ['Date', 'Student', 'Type', 'Weight_kg', 'Height_cm', 'BMI', 'Status', 'Recorded_By']);
+  foreach ($exportMeasurements as $m) {
+    fputcsv($out, [date('Y-m-d', strtotime($m['measured_date'])), $m['first_name'] . ' ' . $m['last_name'], ucfirst($m['type']), $m['weight_kg'], $m['height_cm'], $m['bmi'], $m['nutritional_status'], $m['recorder_name'] ?? 'System']);
+  }
+  fclose($out);
+  exit;
+}
+
 // ========== HELPER: Calculate BMI & Nutritional Status ==========
 function calculateBMI($weight, $height)
 {
@@ -613,19 +665,6 @@ $monthly = max(0, $total - $baseline - $endline);
       </form>
     </div>
   </div>
-
-  <!-- CSV Export -->
-  <?php if (isset($_GET['export'])):
-    header('Content-Type: text/csv');
-    header('Content-Disposition: attachment; filename="measurements_' . date('Y-m-d') . '.csv"');
-    $out = fopen('php://output', 'w');
-    fputcsv($out, ['Date', 'Student', 'Type', 'Weight_kg', 'Height_cm', 'BMI', 'Status', 'Recorded_By']);
-    foreach ($measurements as $m) {
-      fputcsv($out, [date('Y-m-d', strtotime($m['measured_date'])), $m['first_name'] . ' ' . $m['last_name'], ucfirst($m['type']), $m['weight_kg'], $m['height_cm'], $m['bmi'], $m['nutritional_status'], $m['recorder_name'] ?? 'System']);
-    }
-    fclose($out);
-    exit;
-  endif; ?>
 
   <script>
     // ===== LIVE SEARCH (no button, filters as you type) =====

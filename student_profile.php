@@ -55,6 +55,75 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && in_array
   }
 }
 
+// ========== EXPORT LOGIC (Must run before HTML/Headers) ==========
+if (isset($_GET['export'])) {
+  $search = trim($_GET['search'] ?? '');
+  $gradeFilter = $_GET['grade_filter'] ?? '';
+  $sectionFilter = $_GET['section_filter'] ?? '';
+  $sexFilter = $_GET['sex_filter'] ?? '';
+  $schoolYearFilter = $_GET['school_year_filter'] ?? '';
+
+  $where = [];
+  $params = [];
+
+  if ($search) {
+    $where[] = "(CONCAT(first_name,' ',COALESCE(middle_name,''),' ',last_name) LIKE ? OR lrn LIKE ?)";
+    $params = array_merge($params, ["%$search%", "%$search%"]);
+  }
+  if ($gradeFilter) {
+    $where[] = "grade_level = ?";
+    $params[] = $gradeFilter;
+  }
+  if ($sectionFilter) {
+    $where[] = "section = ?";
+    $params[] = $sectionFilter;
+  }
+  if ($sexFilter) {
+    $where[] = "sex = ?";
+    $params[] = $sexFilter;
+  }
+  if ($schoolYearFilter) {
+    $where[] = "school_year = ?";
+    $params[] = $schoolYearFilter;
+  }
+  if (($_SESSION['role'] ?? '') === 'encoder' && !empty($_SESSION['assigned_section'])) {
+    $where[] = "section = ?";
+    $params[] = $_SESSION['assigned_section'];
+  }
+
+  $sql = "SELECT lrn, first_name, middle_name, last_name, grade_level, section, age, sex, school_year, created_at FROM students";
+  if ($where) $sql .= " WHERE " . implode(' AND ', $where);
+  $sql .= " ORDER BY grade_level, section, last_name";
+
+  $stmt = $pdo->prepare($sql);
+  $stmt->execute($params);
+  $exportStudents = $stmt->fetchAll();
+
+  header('Content-Type: text/csv');
+  header('Content-Disposition: attachment; filename="students_roster_' . date('Y-m-d') . '.csv"');
+  $out = fopen('php://output', 'w');
+  
+  // Header row
+  fputcsv($out, ['LRN', 'First Name', 'Middle Name', 'Last Name', 'Grade', 'Section', 'Age', 'Sex', 'School Year', 'Date Encoded']);
+  
+  foreach ($exportStudents as $s) {
+    fputcsv($out, [
+      $s['lrn'], 
+      $s['first_name'], 
+      $s['middle_name'], 
+      $s['last_name'], 
+      $s['grade_level'], 
+      $s['section'], 
+      $s['age'], 
+      $s['sex'], 
+      $s['school_year'],
+      date('Y-m-d', strtotime($s['created_at']))
+    ]);
+  }
+  fclose($out);
+  exit;
+}
+
 // ========== FETCH & FILTER STUDENTS ==========
 $search = trim($_GET['search'] ?? '');
 $gradeFilter = $_GET['grade_filter'] ?? '';
@@ -159,6 +228,7 @@ $showAddModal = isset($_GET['add']) || (isset($_POST['action']) && $_POST['actio
 
         <!-- Header Actions -->
         <div class="header-actions">
+          <?php if ($_SESSION['role'] === 'admin'): ?>
           <!-- Export: triggers CSV download -->
           <form method="get" action="" style="display:inline;">
             <input type="hidden" name="export" value="1">
@@ -174,6 +244,7 @@ $showAddModal = isset($_GET['add']) || (isset($_POST['action']) && $_POST['actio
               Export
             </button>
           </form>
+          <?php endif; ?>
           <!-- Add Student: opens modal via URL param -->
           <a href="?add=1" class="btn btn-primary">
             <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">

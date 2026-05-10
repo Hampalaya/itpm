@@ -102,12 +102,24 @@ $stmt = $pdo->prepare($sql);
 $stmt->execute($params);
 $students = $stmt->fetchAll();
 
+// Determine if an LRN is currently invalid or duplicated (to unlock for encoders)
+function isLrnIssue($pdo, $lrn, $studentId) {
+    if (!$lrn || strlen(trim($lrn)) !== 12) return true;
+    $chk = $pdo->prepare("SELECT COUNT(*) FROM students WHERE lrn = ?");
+    $chk->execute([$lrn]);
+    return $chk->fetchColumn() > 1; // Duplicate exists
+}
+
 // For Edit modal pre-fill
 $edit = null;
+$hasLrnIssue = false;
 if (isset($_GET['edit'])) {
   $stmt = $pdo->prepare("SELECT * FROM students WHERE id = ?");
   $stmt->execute([(int)$_GET['edit']]);
   $edit = $stmt->fetch();
+  if ($edit) {
+      $hasLrnIssue = isLrnIssue($pdo, $edit['lrn'], $edit['id']);
+  }
 }
 // For Add modal trigger
 $showAddModal = isset($_GET['add']) || (isset($_POST['action']) && $_POST['action'] === 'add' && $messageType === 'error');
@@ -296,8 +308,12 @@ $showAddModal = isset($_GET['add']) || (isset($_POST['action']) && $_POST['actio
         <div class="form-row">
           <div class="form-group">
             <label>LRN *</label>
-            <?php if ($edit && $_SESSION['role'] !== 'admin'): ?>
-              <!-- In Edit mode, make LRN read-only for non-admins -->
+            <?php 
+              // Admins can always edit. Encoders can edit IF it's a new add, OR if the current LRN has a data validation issue (like a duplicate or missing digits)
+              $canEditLrn = (!isset($edit) || $_SESSION['role'] === 'admin' || $hasLrnIssue); 
+            ?>
+            <?php if (!$canEditLrn): ?>
+              <!-- In Edit mode, make LRN read-only for non-admins if it's already valid -->
               <input
                 type="text"
                 name="lrn"
@@ -306,7 +322,7 @@ $showAddModal = isset($_GET['add']) || (isset($_POST['action']) && $_POST['actio
                 class="form-input"
                 style="background-color: #f3f4f6; cursor: not-allowed;"
                 title="Only Administrators can edit an LRN once created">
-              <small class="field-hint">Only Administrators can modify the LRN.</small>
+              <small class="field-hint">Only Administrators can modify a valid LRN.</small>
             <?php else: ?>
               <input
                 type="text"
@@ -321,7 +337,11 @@ $showAddModal = isset($_GET['add']) || (isset($_POST['action']) && $_POST['actio
                 placeholder="123456789012"
                 oninput="this.value = this.value.replace(/[^0-9]/g, '').slice(0,12)"
                 class="form-input">
-              <small class="field-hint">DepEd LRN: 12 digits, numbers only</small>
+              <?php if ($edit && $hasLrnIssue && $_SESSION['role'] !== 'admin'): ?>
+                <small class="field-hint" style="color: #e7000b;">Unlocked to fix data validation issue.</small>
+              <?php else: ?>
+                <small class="field-hint">DepEd LRN: 12 digits, numbers only</small>
+              <?php endif; ?>
             <?php endif; ?>
 
           </div>

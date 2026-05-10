@@ -35,7 +35,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && in_array
     $username = trim($_POST['username'] ?? '');
     $role = $_POST['role'] ?? 'encoder';
     $section = trim($_POST['assigned_section'] ?? '');
-    $isActive = ($_POST['is_active'] ?? '0') === '1' ? 1 : 0;
+    
+    // For inserting, default to active (1), for updating rely on the post data
+    $isActive = $_POST['action'] === 'add' ? 1 : (($_POST['is_active'] ?? '0') === '1' ? 1 : 0);
     
     // Validate
     if (!$fullName || !$username || !in_array($role, ['admin','encoder'])) {
@@ -318,7 +320,7 @@ $currentUser = $currentUser->fetch();
           </datalist>
         </div>
         
-        <div class="form-group">
+        <div class="form-group" id="statusGroup">
           <label class="form-label">Status</label>
           <select class="form-select" id="inputStatus" name="is_active">
             <option value="1">Active</option>
@@ -384,6 +386,8 @@ $currentUser = $currentUser->fetch();
     document.getElementById('inputUsername').value = '';
     document.getElementById('inputSection').value = '';
     
+    document.getElementById('statusGroup').style.display = 'none';
+
     const roleSelect = document.getElementById('inputRole');
     const statusSelect = document.getElementById('inputStatus');
     roleSelect.value = 'encoder';
@@ -406,6 +410,8 @@ $currentUser = $currentUser->fetch();
     document.getElementById('inputUsername').value = user.username;
     document.getElementById('inputSection').value = user.assigned_section || '';
     
+    document.getElementById('statusGroup').style.display = 'block';
+
     const roleSelect = document.getElementById('inputRole');
     const statusSelect = document.getElementById('inputStatus');
     

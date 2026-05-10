@@ -31,14 +31,6 @@ if (session_status() === PHP_SESSION_NONE) {
 
         public function open(string $path, string $name): bool
         {
-            $this->pdo->exec("
-                CREATE TABLE IF NOT EXISTS app_sessions (
-                    id VARCHAR(128) PRIMARY KEY,
-                    data MEDIUMBLOB NOT NULL,
-                    expires INT UNSIGNED NOT NULL,
-                    INDEX idx_expires (expires)
-                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
-            ");
             return true;
         }
 
@@ -81,4 +73,14 @@ if (session_status() === PHP_SESSION_NONE) {
 
     session_set_save_handler(new FeedDatabaseSessionHandler($pdo, (int) ini_get('session.gc_maxlifetime')), true);
     session_start();
+}
+
+// Update last active timestamp for logged-in users
+if (isset($_SESSION['user_id'])) {
+    try {
+        $stmt = $pdo->prepare("UPDATE users SET last_active = NOW() WHERE id = ?");
+        $stmt->execute([$_SESSION['user_id']]);
+    } catch (PDOException $e) {
+        // Silently fail if column doesn't exist yet to prevent breaking the app before migration
+    }
 }

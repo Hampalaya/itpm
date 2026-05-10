@@ -13,17 +13,19 @@ if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'admin') {
 $message = '';
 $messageType = '';
 
-// DELETE User
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'delete') {
+// TOGGLE User Status
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && in_array($_POST['action'], ['activate', 'deactivate'])) {
     $userId = (int)($_POST['user_id'] ?? 0);
-    // Prevent deleting yourself
+    // Prevent changing yourself
     if ($userId === $_SESSION['user_id']) {
-        $message = 'You cannot delete your own account.'; $messageType = 'error';
+        $message = 'You cannot change your own account status.'; $messageType = 'error';
     } elseif ($userId > 0) {
-        $stmt = $pdo->prepare("UPDATE users SET is_active = 0 WHERE id = ?"); // Soft delete
-        $stmt->execute([$userId]);
-        logAudit($pdo, 'delete', 'users', $userId, 'Deactivated user account');
-        $message = 'User deactivated.'; $messageType = 'success';
+        $status = $_POST['action'] === 'activate' ? 1 : 0;
+        $stmt = $pdo->prepare("UPDATE users SET is_active = ? WHERE id = ?");
+        $stmt->execute([$status, $userId]);
+        $verb = $status ? 'Activated' : 'Deactivated';
+        logAudit($pdo, 'update', 'users', $userId, "$verb user account");
+        $message = "User $verb."; $messageType = 'success';
     }
 }
 
@@ -41,29 +43,40 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && in_array
     } else {
         try {
             if ($_POST['action'] === 'add') {
-                // Check duplicate username
-                $chk = $pdo->prepare("SELECT id FROM users WHERE username = ?");
-                $chk->execute([$username]);
-                if ($chk->fetch()) {
-                    $message = 'Username already exists.'; $messageType = 'error';
+                if ($role === 'admin') {
+                    $message = 'You are not permitted to add a new Administrator account.'; $messageType = 'error';
                 } else {
-                    // Generate random password for new users (admin can reset later)
-                    $tempPass = bin2hex(random_bytes(4));
-                    $hash = password_hash($tempPass, PASSWORD_DEFAULT);
-                    
-                    $stmt = $pdo->prepare("INSERT INTO users (username, password_hash, role, full_name, assigned_section, is_active) VALUES (?, ?, ?, ?, ?, ?)");
-                    $stmt->execute([$username, $hash, $role, $fullName, $role === 'encoder' && $section ? $section : null, $isActive]);
-                    
-                    // Show temp password in toast
-                    $message = "User added. Temporary password: <strong>$tempPass</strong> (user should change on first login)"; 
-                    $messageType = 'success';
-                    logAudit($pdo,'insert','users',$pdo->lastInsertId(),"Added user: $username");
+                    // Check duplicate username
+                    $chk = $pdo->prepare("SELECT id FROM users WHERE username = ?");
+                    $chk->execute([$username]);
+                    if ($chk->fetch()) {
+                        $message = 'Username already exists.'; $messageType = 'error';
+                    } else {
+                        // Generate random password for new users (admin can reset later)
+                        $tempPass = bin2hex(random_bytes(4));
+                        $hash = password_hash($tempPass, PASSWORD_DEFAULT);
+                        
+                        $stmt = $pdo->prepare("INSERT INTO users (username, password_hash, role, full_name, assigned_section, is_active) VALUES (?, ?, ?, ?, ?, ?)");
+                        $stmt->execute([$username, $hash, $role, $fullName, $role === 'encoder' && $section ? $section : null, $isActive]);
+                        
+                        // Show temp password in toast
+                        $message = "User added. Temporary password: <strong>$tempPass</strong> (user should change on first login)"; 
+                        $messageType = 'success';
+                        logAudit($pdo,'insert','users',$pdo->lastInsertId(),"Added user: $username");
+                    }
                 }
             } else {
                 // Update existing user
                 $userId = (int)($_POST['id'] ?? 0);
+                
+                $currStmt = $pdo->prepare("SELECT role FROM users WHERE id = ?");
+                $currStmt->execute([$userId]);
+                $currentRole = $currStmt->fetchColumn();
+
                 if ($userId === $_SESSION['user_id'] && $role !== 'admin') {
-                    $message = 'You cannot downgrade your own role.'; $messageType = 'error';
+                    $message = 'You cannot demote your own account.'; $messageType = 'error';
+                } elseif ($currentRole !== 'admin' && $role === 'admin') {
+                    $message = 'You are not permitted to promote users to Administrator.'; $messageType = 'error';
                 } else {
                     $stmt = $pdo->prepare("UPDATE users SET full_name=?, role=?, assigned_section=?, is_active=? WHERE id=?");
                     $stmt->execute([$fullName, $role, $role === 'encoder' && $section ? $section : null, $isActive, $userId]);
@@ -245,7 +258,11 @@ $currentUser = $currentUser->fetch();
                   <td>
                     <button type="button" class="action-btn edit js-edit-user" data-user="<?= $userJson ?>">Edit</button>
                     <?php if ($u['id'] !== $_SESSION['user_id']): ?>
-                    <button type="button" class="action-btn delete js-delete-user" data-user-id="<?= (int)$u['id'] ?>" data-user-name="<?= $userNameAttr ?>">Deactivate</button>
+                      <?php if ($u['is_active']): ?>
+                        <button type="button" class="action-btn delete js-toggle-user" data-user-id="<?= (int)$u['id'] ?>" data-user-name="<?= $userNameAttr ?>" data-action="deactivate">Deactivate</button>
+                      <?php else: ?>
+                        <button type="button" class="action-btn js-toggle-user" style="color:#00bc7d; border-color:#e5e7eb" data-user-id="<?= (int)$u['id'] ?>" data-user-name="<?= $userNameAttr ?>" data-action="activate">Activate</button>
+                      <?php endif; ?>
                     <?php endif; ?>
                   </td>
                 </tr>
@@ -317,20 +334,19 @@ $currentUser = $currentUser->fetch();
     </div>
   </div>
 
-  <!-- Delete Modal -->
-  <div class="modal-overlay" id="deleteModal">
+  <!-- Toggle Status Modal -->
+  <div class="modal-overlay" id="toggleModal">
     <div class="modal">
-      <div class="modal-title">Deactivate User</div>
+      <div class="modal-title" id="toggleModalTitle">Deactivate User</div>
       <p class="confirm-text" style="margin:16px 0;color:#6b7280">
-        Are you sure you want to deactivate <strong id="deleteUserName"></strong>? 
-        They will no longer be able to log in. This can be reversed later.
+        Are you sure you want to <span id="toggleModalActionText" style="font-weight:600">deactivate</span> <strong id="toggleUserName"></strong>?
       </p>
       <form method="post" action="">
-        <input type="hidden" name="action" value="delete">
-        <input type="hidden" name="user_id" id="deleteUserId" value="">
+        <input type="hidden" name="action" id="toggleActionInput" value="deactivate">
+        <input type="hidden" name="user_id" id="toggleUserId" value="">
         <div class="modal-actions">
-          <button type="button" class="btn-cancel" onclick="closeDeleteModal()">Cancel</button>
-          <button type="submit" class="btn-confirm-delete">Deactivate</button>
+          <button type="button" class="btn-cancel" onclick="closeToggleModal()">Cancel</button>
+          <button type="submit" class="btn-confirm-delete" id="toggleConfirmBtn">Deactivate</button>
         </div>
       </form>
     </div>
@@ -354,9 +370,11 @@ $currentUser = $currentUser->fetch();
   </div>
 
   <script>
+  const currentUserId = <?= (int)$_SESSION['user_id'] ?>;
+  
   // Modal functions
   const userModal = document.getElementById('userModal');
-  const deleteModal = document.getElementById('deleteModal');
+  const toggleModal = document.getElementById('toggleModal');
   
   function openAddModal() {
     document.getElementById('modalTitle').textContent = 'Add User';
@@ -364,9 +382,17 @@ $currentUser = $currentUser->fetch();
     document.getElementById('formId').value = '';
     document.getElementById('inputName').value = '';
     document.getElementById('inputUsername').value = '';
-    document.getElementById('inputRole').value = 'encoder';
     document.getElementById('inputSection').value = '';
-    document.getElementById('inputStatus').value = '1';
+    
+    const roleSelect = document.getElementById('inputRole');
+    const statusSelect = document.getElementById('inputStatus');
+    roleSelect.value = 'encoder';
+    statusSelect.value = '1';
+    
+    // Admins cannot create new admins
+    Array.from(roleSelect.options).forEach(opt => opt.disabled = (opt.value === 'admin'));
+    Array.from(statusSelect.options).forEach(opt => opt.disabled = false);
+    
     document.getElementById('passwordGroup').style.display = 'block';
     document.getElementById('btnSave').textContent = 'Add User';
     userModal.classList.add('active');
@@ -378,9 +404,30 @@ $currentUser = $currentUser->fetch();
     document.getElementById('formId').value = user.id;
     document.getElementById('inputName').value = user.full_name;
     document.getElementById('inputUsername').value = user.username;
-    document.getElementById('inputRole').value = user.role;
     document.getElementById('inputSection').value = user.assigned_section || '';
-    document.getElementById('inputStatus').value = Number(user.is_active) === 1 ? '1' : '0';
+    
+    const roleSelect = document.getElementById('inputRole');
+    const statusSelect = document.getElementById('inputStatus');
+    
+    roleSelect.value = user.role;
+    statusSelect.value = Number(user.is_active) === 1 ? '1' : '0';
+    
+    // Set restrictions on Edit
+    Array.from(roleSelect.options).forEach(opt => opt.disabled = false);
+    Array.from(statusSelect.options).forEach(opt => opt.disabled = false);
+    
+    if (Number(user.id) === currentUserId) {
+        // Prevent editing own role & status
+        Array.from(roleSelect.options).forEach(opt => opt.disabled = (opt.value !== user.role));
+        Array.from(statusSelect.options).forEach(opt => opt.disabled = (opt.value !== statusSelect.value));
+    } else {
+        // Prevent promoting non-admins to admin and demoting other actual admins
+        Array.from(roleSelect.options).forEach(opt => {
+            if (user.role === 'admin') opt.disabled = (opt.value !== 'admin');
+            else opt.disabled = (opt.value === 'admin');
+        });
+    }
+
     document.getElementById('passwordGroup').style.display = 'none'; // No password change in edit
     document.getElementById('btnSave').textContent = 'Update User';
     userModal.classList.add('active');
@@ -390,14 +437,24 @@ $currentUser = $currentUser->fetch();
     userModal.classList.remove('active');
   }
   
-  function openDeleteModal(userId, userName) {
-    document.getElementById('deleteUserId').value = userId;
-    document.getElementById('deleteUserName').textContent = userName;
-    deleteModal.classList.add('active');
+  function openToggleModal(userId, userName, action) {
+    document.getElementById('toggleUserId').value = userId;
+    document.getElementById('toggleUserName').textContent = userName;
+    document.getElementById('toggleActionInput').value = action;
+    
+    const isActivate = action === 'activate';
+    document.getElementById('toggleModalTitle').textContent = isActivate ? 'Activate User' : 'Deactivate User';
+    document.getElementById('toggleModalActionText').textContent = action;
+    
+    const btn = document.getElementById('toggleConfirmBtn');
+    btn.textContent = isActivate ? 'Activate' : 'Deactivate';
+    btn.style.backgroundColor = isActivate ? '#00bc7d' : '#e7000b';
+    
+    toggleModal.classList.add('active');
   }
   
-  function closeDeleteModal() {
-    deleteModal.classList.remove('active');
+  function closeToggleModal() {
+    toggleModal.classList.remove('active');
   }
 
   document.querySelectorAll('.js-edit-user').forEach(button => {
@@ -410,21 +467,21 @@ $currentUser = $currentUser->fetch();
     });
   });
 
-  document.querySelectorAll('.js-delete-user').forEach(button => {
+  document.querySelectorAll('.js-toggle-user').forEach(button => {
     button.addEventListener('click', () => {
-      openDeleteModal(button.dataset.userId, button.dataset.userName);
+      openToggleModal(button.dataset.userId, button.dataset.userName, button.dataset.action);
     });
   });
   
   // Close modals on overlay click or Escape
-  [userModal, deleteModal].forEach(modal => {
+  [userModal, toggleModal].forEach(modal => {
     modal?.addEventListener('click', function(e) {
       if (e.target === this) this.classList.remove('active');
     });
   });
   document.addEventListener('keydown', function(e) {
     if (e.key === 'Escape') {
-      closeModal(); closeDeleteModal();
+      closeModal(); closeToggleModal();
     }
   });
   

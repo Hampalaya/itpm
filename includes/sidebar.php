@@ -1,7 +1,7 @@
 <?php
 // SECURITY: Ensure user is logged in before rendering sidebar
 if (session_status() === PHP_SESSION_NONE) {
-    session_start();
+    require_once __DIR__ . '/session.php';
 }
 if (!isset($_SESSION['user_id'])) {
     header('Location: index.php');

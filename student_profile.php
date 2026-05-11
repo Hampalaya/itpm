@@ -483,14 +483,14 @@ $showAddModal = isset($_GET['add']) || (isset($_POST['action']) && $_POST['actio
           </div>
           <div class="form-group">
             <label>Section *</label>
-            <input type="text" name="section" value="<?= htmlspecialchars($edit['section'] ?? '') ?>" required list="sections" class="form-input">
-            <datalist id="sections">
-              <option value="A">
-              <option value="B">
-              <option value="C">
-              <option value="D">
-              <option value="E">
-            </datalist>
+            <select name="section" required class="form-input">
+              <option value="">Select Section</option>
+              <option value="A" <?= (isset($edit['section']) && $edit['section'] === 'A') ? 'selected' : '' ?>>Section A</option>
+              <option value="B" <?= (isset($edit['section']) && $edit['section'] === 'B') ? 'selected' : '' ?>>Section B</option>
+              <option value="C" <?= (isset($edit['section']) && $edit['section'] === 'C') ? 'selected' : '' ?>>Section C</option>
+              <option value="D" <?= (isset($edit['section']) && $edit['section'] === 'D') ? 'selected' : '' ?>>Section D</option>
+              <option value="E" <?= (isset($edit['section']) && $edit['section'] === 'E') ? 'selected' : '' ?>>Section E</option>
+            </select>
           </div>
           <div class="form-group">
             <label>Age *</label>

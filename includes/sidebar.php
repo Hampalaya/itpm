@@ -131,9 +131,9 @@ $currentPage = basename($_SERVER['PHP_SELF'], '.php');
 <div class="sidebar-modal-overlay" id="sidebarChangePassModal">
   <div class="sidebar-modal">
     <div class="sidebar-modal-header">
-      <h3>Change Password</h3>
-      <button onclick="closeSidebarChangePassword()" class="sidebar-modal-close">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+      <h3 style="margin: 0;font-size: 18px;color: #101828;">Change Password</h3>
+      <button onclick="closeSidebarChangePassword()" class="sidebar-modal-close" style="background: none;border: none;cursor: pointer;color: #6b7280;padding: 4px;display: flex;align-items: center;justify-content: center;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 20px;height: 20px;"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
       </button>
     </div>
     <form method="post" action="change_password.php" id="sidebarChangePassForm">

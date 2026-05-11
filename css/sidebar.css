@@ -363,6 +363,12 @@
   transition: background 0.15s;
 }
 
+.popup-item svg {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+}
+
 .popup-item:hover {
   background: #f3f4f6;
 }
@@ -428,6 +434,15 @@
   cursor: pointer;
   color: #6b7280;
   padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.sidebar-modal-close svg {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
 }
 /* Main Content Wrapper */
 .main-content-wrapper {

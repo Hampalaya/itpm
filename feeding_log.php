@@ -54,6 +54,8 @@ $sql = "SELECT s.id, CONCAT(s.first_name, ' ', s.last_name) as name, s.grade_lev
                fl.is_present, fl.meal_served, fl.remarks
         FROM students s
         LEFT JOIN feeding_logs fl ON s.id = fl.student_id AND fl.feeding_date = ?
+        -- Join with baseline measurements to ensure only eligible students are fed
+        INNER JOIN measurements m ON s.id = m.student_id AND m.type = 'baseline' AND m.nutritional_status = 'Underweight'
         " . ($where ? "WHERE " . implode(' AND ', $where) : "") . "
         ORDER BY s.grade_level, s.section, s.last_name";
 $params = array_merge([$selectedDate], $params);

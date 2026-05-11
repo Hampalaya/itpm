@@ -108,9 +108,13 @@ $currentPage = basename($_SERVER['PHP_SELF'], '.php');
         <div class="user-name"><?= $userName ?></div>
         <div class="user-role"><?= $userRole ?></div>
       </div>
-      <div class="user-dropdown">
-        <svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
-      </div>
+      <a href="logout.php" class="user-logout" title="Logout">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+          <polyline points="16 17 21 12 16 7"></polyline>
+          <line x1="21" y1="12" x2="9" y2="12"></line>
+        </svg>
+      </a>
     </div>
   </div>
 </nav>

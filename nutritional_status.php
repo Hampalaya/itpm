@@ -55,13 +55,15 @@ foreach ($students as $s) {
     if ($s['base_status'] === $s['end_status']) {
         $progress = 'maintained';
     } elseif (
-        ($s['base_status'] === 'Underweight' && in_array($s['end_status'], ['Normal', 'Overweight', 'Obese'])) ||
-        ($s['base_status'] === 'Normal' && in_array($s['end_status'], ['Overweight', 'Obese'])) ||
-        ($s['base_status'] === 'Overweight' && $s['end_status'] === 'Obese')
+        // Moving to Normal from any malnourished state is an Improvement
+        ($s['end_status'] === 'Normal') || 
+        // Moving from Obese down to Overweight is an Improvement
+        ($s['base_status'] === 'Obese' && $s['end_status'] === 'Overweight')
     ) {
-        $progress = 'declined'; // Note: In SBFP context, moving away from Normal is often "declined"
+        $progress = 'improved';
     } else {
-        $progress = 'improved'; // Moving toward Normal from Underweight/Overweight
+        // Any other change (e.g., getting worse, or overshooting from Underweight to Overweight/Obese)
+        $progress = 'declined';
     }
     
     // Apply progress filter
@@ -296,7 +298,7 @@ if (isset($_GET['export'])) {
                     $baseStatusClass = 'status-'.strtolower(str_replace(' ','-',$s['base_status']));
                     $endStatusClass = 'status-'.strtolower(str_replace(' ','-',$s['end_status']));
                   ?>
-                  <tr onclick="openDetailModal(<?= json_encode($s, JSON_HEX_APOS|JSON_HEX_QUOT) ?>)">
+                  <tr onclick="openDetailModal(<?= htmlspecialchars(json_encode($s), ENT_QUOTES, 'UTF-8') ?>)">
                     <td><?= htmlspecialchars($s['name']) ?></td>
                     <td>Grade <?= $s['grade_level'] ?> - <?= $s['section'] ?></td>
                     <td class="center"><?= number_format($s['base_bmi'],2) ?></td>
@@ -305,7 +307,7 @@ if (isset($_GET['export'])) {
                     <td class="center"><span class="status-badge <?= $endStatusClass ?>"><?= $s['end_status'] ?></span></td>
                     <td class="center"><span class="progress-badge <?= $progressClass ?>"><?= ucfirst($s['progress']) ?></span></td>
                     <td class="center">
-                      <button class="btn btn-secondary btn-sm" onclick="event.stopPropagation(); openDetailModal(<?= json_encode($s, JSON_HEX_APOS|JSON_HEX_QUOT) ?>)">View</button>
+                      <button class="btn btn-secondary btn-sm" onclick="event.stopPropagation(); openDetailModal(<?= htmlspecialchars(json_encode($s), ENT_QUOTES, 'UTF-8') ?>)">View</button>
                     </td>
                   </tr>
                   <?php endforeach; ?>

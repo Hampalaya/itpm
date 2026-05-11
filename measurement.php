@@ -216,7 +216,9 @@ if (($_SESSION['role'] ?? '') === 'encoder' && !empty($_SESSION['assigned_sectio
 $studentSql = "SELECT id, CONCAT(first_name,' ',last_name) as full_name, grade_level, section FROM students";
 if ($studentWhere) $studentSql .= " WHERE " . implode(' AND ', $studentWhere);
 $studentSql .= " ORDER BY grade_level, section, last_name";
-$students = $pdo->query($studentSql)->fetchAll();
+$studentStmt = $pdo->prepare($studentSql);
+$studentStmt->execute($studentParams);
+$students = $studentStmt->fetchAll();
 
 $edit = null;
 if (isset($_GET['edit'])) {

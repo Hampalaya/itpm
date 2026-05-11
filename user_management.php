@@ -324,10 +324,14 @@ $currentUser = $currentUser->fetch();
         
         <div class="form-group">
           <label class="form-label">Assigned Section <span style="color:#9ca3af;font-weight:400">(for encoders)</span></label>
-          <input type="text" class="form-input" id="inputSection" name="assigned_section" placeholder="e.g., Grade 4-A" list="sections">
-          <datalist id="sections">
-            <option value="A"><option value="B"><option value="C"><option value="D"><option value="E">
-          </datalist>
+          <select class="form-select" id="inputSection" name="assigned_section">
+            <option value="">-- No Section (Full Access) --</option>
+            <option value="A">Section A</option>
+            <option value="B">Section B</option>
+            <option value="C">Section C</option>
+            <option value="D">Section D</option>
+            <option value="E">Section E</option>
+          </select>
         </div>
         
         <div class="form-group" id="statusGroup">

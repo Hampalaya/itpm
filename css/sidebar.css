@@ -287,19 +287,33 @@
   color: #8e99a4;
 }
 
-.user-dropdown {
-  width: 20px;
-  height: 20px;
+.user-dropdown, .user-logout {
+  width: 24px;
+  height: 24px;
   flex-shrink: 0;
-  transition: opacity 0.25s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  transition: opacity 0.25s ease, background 0.2s, color 0.2s;
+  color: #8e99a4;
 }
 
-.sidebar.collapsed .user-dropdown {
+.user-logout:hover {
+  background: #fee2e2;
+  color: #ef4444;
+}
+
+.user-logout svg {
+  stroke: currentColor;
+}
+
+.sidebar.collapsed .user-dropdown, .sidebar.collapsed .user-logout {
   opacity: 0;
   pointer-events: none;
 }
 
-.sidebar.collapsed:hover .user-dropdown {
+.sidebar.collapsed:hover .user-dropdown, .sidebar.collapsed:hover .user-logout {
   opacity: 0;
   pointer-events: none;
 }

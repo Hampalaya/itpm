@@ -21,7 +21,7 @@ if (!isset($_POST['run_validation']) && !isset($_GET['auto_run'])) {
 if (isset($_POST['run_validation']) || isset($_GET['auto_run'])) {
     
     // 1. Students with missing/invalid LRN (HIGH)
-    $stmt = $pdo->query("SELECT id, CONCAT(first_name,' ',last_name) as name, lrn, 'Missing or invalid LRN' as issue, 'high' as priority FROM students WHERE lrn IS NULL OR lrn = '' OR LENGTH(lrn) != 12");
+    $stmt = $pdo->query("SELECT id, CONCAT(first_name,' ',last_name) as name, lrn, 'Missing or invalid LRN' as issue, 'high' as priority, 'student' as fix_type FROM students WHERE lrn IS NULL OR lrn = '' OR LENGTH(lrn) != 12");
     foreach ($stmt->fetchAll() as $row) { $validationResults[] = $row; $stats['total']++; $stats['high']++; }
     
     // 2. Age/Grade mismatch (MEDIUM) - e.g., Grade 1 student age > 9
@@ -35,7 +35,7 @@ if (isset($_POST['run_validation']) || isset($_GET['auto_run'])) {
             WHEN grade_level = 6 AND age > 14 THEN 'Age too high for Grade 6'
             WHEN age < 5 THEN 'Age too young for elementary'
             ELSE 'Possible age/grade mismatch'
-        END as issue, 'medium' as priority
+        END as issue, 'medium' as priority, 'student' as fix_type
         FROM students 
         WHERE (grade_level = 1 AND age > 9) OR (grade_level = 2 AND age > 10) OR (grade_level = 3 AND age > 11) 
            OR (grade_level = 4 AND age > 12) OR (grade_level = 5 AND age > 13) OR (grade_level = 6 AND age > 14) OR age < 5");
@@ -45,7 +45,7 @@ if (isset($_POST['run_validation']) || isset($_GET['auto_run'])) {
     $stmt = $pdo->query("SELECT m.id, CONCAT(s.first_name,' ',s.last_name) as name, m.bmi, m.type,
         CASE WHEN m.bmi < 10 THEN 'BMI too low (possible data entry error)' 
              WHEN m.bmi > 50 THEN 'BMI too high (possible data entry error)'
-             ELSE 'Invalid BMI value' END as issue, 'high' as priority
+             ELSE 'Invalid BMI value' END as issue, 'high' as priority, 'measurement' as fix_type
         FROM measurements m
         JOIN students s ON m.student_id = s.id
         WHERE m.bmi IS NOT NULL AND (m.bmi < 10 OR m.bmi > 50)");
@@ -53,7 +53,7 @@ if (isset($_POST['run_validation']) || isset($_GET['auto_run'])) {
     
     // 4. Students missing baseline measurement (MEDIUM)
     $stmt = $pdo->query("SELECT s.id, CONCAT(s.first_name,' ',s.last_name) as name, NULL as bmi, NULL as type, 
-        'Missing baseline measurement' as issue, 'medium' as priority
+        'Missing baseline measurement' as issue, 'medium' as priority, 'measurement' as fix_type, s.id as student_id
         FROM students s
         LEFT JOIN measurements m ON s.id = m.student_id AND m.type = 'baseline'
         WHERE m.id IS NULL");
@@ -61,7 +61,7 @@ if (isset($_POST['run_validation']) || isset($_GET['auto_run'])) {
     
     // 5. Duplicate LRNs (HIGH) - should never happen but check anyway
     $stmt = $pdo->query("SELECT s1.id, CONCAT(s1.first_name,' ',s1.last_name) as name, s1.lrn, 
-        'Duplicate LRN found' as issue, 'high' as priority
+        'Duplicate LRN found' as issue, 'high' as priority, 'student' as fix_type
         FROM students s1
         INNER JOIN students s2 ON s1.lrn = s2.lrn AND s1.id < s2.id");
     foreach ($stmt->fetchAll() as $row) { $validationResults[] = $row; $stats['total']++; $stats['high']++; }
@@ -72,7 +72,7 @@ if (isset($_POST['run_validation']) || isset($_GET['auto_run'])) {
             WHEN m.height_cm < 80 OR m.height_cm > 200 THEN 'Height outlier (review)'
             WHEN m.weight_kg < 15 OR m.weight_kg > 120 THEN 'Weight outlier (review)'
             ELSE 'Possible measurement error' 
-        END as issue, 'low' as priority
+        END as issue, 'low' as priority, 'measurement' as fix_type
         FROM measurements m
         JOIN students s ON m.student_id = s.id
         WHERE m.height_cm < 80 OR m.height_cm > 200 OR m.weight_kg < 15 OR m.weight_kg > 120");
@@ -175,7 +175,15 @@ if (isset($_POST['run_validation']) || isset($_GET['auto_run'])) {
                     </div>
                   </div>
                   <div class="validation-actions">
-                    <a href="student_profile.php?edit=<?= $issue['id'] ?>" class="btn-sm primary">Fix</a>
+                    <?php if (($issue['fix_type'] ?? 'student') === 'measurement'): ?>
+                      <?php if ($issue['issue'] === 'Missing baseline measurement'): ?>
+                        <a href="measurement.php?add=1&student_id=<?= $issue['student_id'] ?>" class="btn-sm primary">Fix</a>
+                      <?php else: ?>
+                        <a href="measurement.php?edit=<?= $issue['id'] ?>" class="btn-sm primary">Fix</a>
+                      <?php endif; ?>
+                    <?php else: ?>
+                      <a href="student_profile.php?edit=<?= $issue['id'] ?>" class="btn-sm primary">Fix</a>
+                    <?php endif; ?>
                     <button class="btn-sm" onclick="this.closest('.validation-item').style.opacity='0.5';this.disabled=true">Ignore</button>
                   </div>
                 </div>

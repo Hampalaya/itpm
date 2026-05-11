@@ -494,7 +494,14 @@ $monthly = max(0, $total - $baseline - $endline);
             <circle cx="11" cy="11" r="8" />
             <line x1="21" y1="21" x2="16.65" y2="16.65" />
           </svg>
-          <input type="text" id="liveSearch" class="search-input" placeholder="Search by student name..." value="<?= htmlspecialchars($search) ?>" autocomplete="off">
+          <form method="get" action="" id="searchForm" style="display:inline;">
+             <!-- Hidden inputs to preserve other filters when searching -->
+            <?php if (!empty($_GET['type_filter'])): ?><input type="hidden" name="type_filter" value="<?= htmlspecialchars($_GET['type_filter']) ?>"><?php endif; ?>
+            <?php if (!empty($_GET['grade_filter'])): ?><input type="hidden" name="grade_filter" value="<?= htmlspecialchars($_GET['grade_filter']) ?>"><?php endif; ?>
+            <?php if (!empty($_GET['section_filter'])): ?><input type="hidden" name="section_filter" value="<?= htmlspecialchars($_GET['section_filter']) ?>"><?php endif; ?>
+            
+            <input type="text" name="search" id="liveSearch" class="search-input" placeholder="Search by student name... (Press Enter to search)" value="<?= htmlspecialchars($search) ?>" autocomplete="off">
+          </form>
         </div>
         <button type="button" class="btn-filter" id="toggleFilters">
           <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
@@ -562,7 +569,7 @@ $monthly = max(0, $total - $baseline - $endline);
                       <div class="student-cell">
                         <div class="student-avatar"><?= htmlspecialchars($initial) ?></div>
                         <div class="student-info">
-                          <span class="student-name"><?= htmlspecialchars($m['first_name'] . ' ' . $m['last_name']) ?></span>
+                          <span class="student-search-name student-name"><?= htmlspecialchars($m['first_name'] . ' ' . $m['last_name']) ?></span>
                         </div>
                       </div>
                     </td>
@@ -670,22 +677,30 @@ $monthly = max(0, $total - $baseline - $endline);
     // ===== LIVE SEARCH (no button, filters as you type) =====
     const searchInput = document.getElementById('liveSearch');
     const filterSearch = document.getElementById('filterSearch');
-    let searchTimeout;
 
     searchInput?.addEventListener('input', function() {
-      clearTimeout(searchTimeout);
-      filterSearch.value = this.value; // Sync hidden input for form submit
-      searchTimeout = setTimeout(() => {
-        // Live filter: reload page with search param
-        const url = new URL(window.location);
-        if (this.value.trim()) {
-          url.searchParams.set('search', this.value.trim());
-        } else {
-          url.searchParams.delete('search');
-        }
-        window.location.href = url.toString();
-      }, 300); // 300ms debounce
+        const filter = this.value.toUpperCase();
+        const rows = document.querySelectorAll('table tbody tr');
+        
+        rows.forEach(row => {
+          // Check if this is the "No measurements" placeholder row
+          if (row.cells.length === 1) return;
+          
+          const nameSpan = row.querySelector('.student-search-name');
+          if (nameSpan) {
+            const txtValue = nameSpan.textContent || nameSpan.innerText;
+            if (txtValue.toUpperCase().indexOf(filter) > -1) {
+              row.style.display = "";
+            } else {
+              row.style.display = "none";
+            }
+          }
+        });
     });
+    
+    // Prevent form default submit if Enter is pressed
+    const searchForm = document.getElementById('searchForm');
+    searchForm?.addEventListener('submit', function(e) { e.preventDefault(); });
 
     // ===== BMI Calculator =====
     function calculateBMI() {

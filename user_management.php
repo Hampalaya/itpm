@@ -29,6 +29,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && in_array
     }
 }
 
+// RESET PASSWORD
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'reset_password') {
+    $userId = (int)($_POST['user_id'] ?? 0);
+    if ($userId === $_SESSION['user_id']) {
+        $message = 'Change your own password via the profile popup instead.'; $messageType = 'error';
+    } elseif ($userId > 0) {
+        $tempPass = bin2hex(random_bytes(4));
+        $hash = password_hash($tempPass, PASSWORD_DEFAULT);
+        
+        $stmt = $pdo->prepare("UPDATE users SET password_hash = ? WHERE id = ?");
+        $stmt->execute([$hash, $userId]);
+        
+        $generatedPassword = $tempPass; // Triggers the popup modal
+        $message = "New temporary password generated."; 
+        $messageType = 'success';
+        logAudit($pdo, 'update', 'users', $userId, "Reset temporary password");
+    }
+}
+
 // ADD or UPDATE User
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && in_array($_POST['action'], ['add','update'])) {
     $fullName = trim($_POST['full_name'] ?? '');
@@ -270,6 +289,7 @@ $currentUser = $currentUser->fetch();
                   <td>
                     <button type="button" class="action-btn edit js-edit-user" data-user="<?= $userJson ?>">Edit</button>
                     <?php if ($u['id'] !== $_SESSION['user_id']): ?>
+                      <button type="button" class="action-btn edit js-reset-pass" data-user-id="<?= (int)$u['id'] ?>" data-user-name="<?= $userNameAttr ?>" style="color:#f59e0b; border-color:#f59e0b;">Reset Pass</button>
                       <?php if ($u['is_active']): ?>
                         <button type="button" class="action-btn delete js-toggle-user" data-user-id="<?= (int)$u['id'] ?>" data-user-name="<?= $userNameAttr ?>" data-action="deactivate">Deactivate</button>
                       <?php else: ?>
@@ -368,6 +388,24 @@ $currentUser = $currentUser->fetch();
     </div>
   </div>
 
+  <!-- Reset Password Modal -->
+  <div class="modal-overlay" id="resetPassModal">
+    <div class="modal">
+      <div class="modal-title">Reset Password</div>
+      <p class="confirm-text" style="margin:16px 0;color:#6b7280">
+        Are you sure you want to generate a new temporary password for <strong id="resetUserName"></strong>?
+      </p>
+      <form method="post" action="">
+        <input type="hidden" name="action" value="reset_password">
+        <input type="hidden" name="user_id" id="resetUserId" value="">
+        <div class="modal-actions">
+          <button type="button" class="btn-cancel" onclick="closeResetModal()">Cancel</button>
+          <button type="submit" class="btn-save" style="background:#f59e0b">Generate New Password</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <!-- Password Reveal Modal -->
   <?php if (!empty($generatedPassword)): ?>
   <div class="modal-overlay active" id="passwordRevealModal">
@@ -432,6 +470,7 @@ $currentUser = $currentUser->fetch();
   // Modal functions
   const userModal = document.getElementById('userModal');
   const toggleModal = document.getElementById('toggleModal');
+  const resetPassModal = document.getElementById('resetPassModal');
   
   function openAddModal() {
     document.getElementById('modalTitle').textContent = 'Add User';
@@ -518,6 +557,10 @@ $currentUser = $currentUser->fetch();
     toggleModal.classList.remove('active');
   }
 
+  function closeResetModal() {
+    resetPassModal.classList.remove('active');
+  }
+
   document.querySelectorAll('.js-edit-user').forEach(button => {
     button.addEventListener('click', () => {
       try {
@@ -533,16 +576,24 @@ $currentUser = $currentUser->fetch();
       openToggleModal(button.dataset.userId, button.dataset.userName, button.dataset.action);
     });
   });
+
+  document.querySelectorAll('.js-reset-pass').forEach(button => {
+    button.addEventListener('click', () => {
+      document.getElementById('resetUserId').value = button.dataset.userId;
+      document.getElementById('resetUserName').textContent = button.dataset.userName;
+      resetPassModal.classList.add('active');
+    });
+  });
   
   // Close modals on overlay click or Escape
-  [userModal, toggleModal].forEach(modal => {
+  [userModal, toggleModal, resetPassModal].forEach(modal => {
     modal?.addEventListener('click', function(e) {
       if (e.target === this) this.classList.remove('active');
     });
   });
   document.addEventListener('keydown', function(e) {
     if (e.key === 'Escape') {
-      closeModal(); closeToggleModal();
+      closeModal(); closeToggleModal(); closeResetModal();
     }
   });
   

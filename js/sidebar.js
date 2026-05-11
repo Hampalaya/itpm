@@ -96,6 +96,23 @@ document.addEventListener("DOMContentLoaded", function () {
     });
   });
 
+  // ── Profile Popup ──────────────────────────────────────────────────
+  const userProfileBtn = document.getElementById("userProfileBtn");
+  const profilePopup = document.getElementById("profilePopup");
+  
+  if (userProfileBtn && profilePopup) {
+    userProfileBtn.addEventListener("click", function (e) {
+      e.stopPropagation();
+      profilePopup.classList.toggle("active");
+    });
+
+    document.addEventListener("click", function (e) {
+      if (!profilePopup.contains(e.target) && !userProfileBtn.contains(e.target)) {
+        profilePopup.classList.remove("active");
+      }
+    });
+  }
+
   document.addEventListener("keydown", function (e) {
     if (e.key === "Escape" && sidebar.classList.contains("open-mobile")) closeMobile();
   });
@@ -104,3 +121,14 @@ document.addEventListener("DOMContentLoaded", function () {
     if (!isMobile() && sidebar.classList.contains("open-mobile")) closeMobile();
   });
 });
+
+// ── Global Change Password Modal ──────────────────────────────────────
+function openSidebarChangePassword() {
+  document.getElementById("profilePopup")?.classList.remove("active");
+  document.getElementById("sidebarChangePassModal").classList.add("active");
+}
+
+function closeSidebarChangePassword() {
+  document.getElementById("sidebarChangePassModal").classList.remove("active");
+  document.getElementById("sidebarChangePassForm").reset();
+}

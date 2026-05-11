@@ -62,7 +62,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && in_array
                         $stmt->execute([$username, $hash, $role, $fullName, $role === 'encoder' && $section ? $section : null, $isActive]);
                         
                         // Show temp password in toast
-                        $message = "User added. Temporary password: <strong>$tempPass</strong> (user should change on first login)"; 
+                        $generatedPassword = $tempPass;
+                        $message = "User added."; 
                         $messageType = 'success';
                         logAudit($pdo,'insert','users',$pdo->lastInsertId(),"Added user: $username");
                     }
@@ -362,6 +363,47 @@ $currentUser = $currentUser->fetch();
       </form>
     </div>
   </div>
+
+  <!-- Password Reveal Modal -->
+  <?php if (!empty($generatedPassword)): ?>
+  <div class="modal-overlay active" id="passwordRevealModal">
+    <div class="modal" style="text-align: center; max-width: 400px;">
+      <div style="width: 48px; height: 48px; background: #dcfce7; color: #166534; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 16px;">
+        <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+      </div>
+      <div class="modal-title" style="margin-bottom: 8px;">Account Created</div>
+      <p style="color: #6b7280; font-size: 14px; margin-bottom: 24px;">The new encoder account has been set up securely. Please copy the temporary password below and give it to the user.</p>
+      
+      <div style="background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 8px; padding: 12px; display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px;">
+        <code style="font-size: 20px; font-weight: 700; color: #101828; letter-spacing: 2px;" id="generatedPasswordTxt"><?= $generatedPassword ?></code>
+        <button type="button" onclick="copyPassword()" class="btn-cancel" id="btnCopyPass" style="padding: 6px 12px; font-size: 12px;">Copy</button>
+      </div>
+      
+      <button type="button" class="btn-save" style="width: 100%;" onclick="closePasswordReveal()">I've saved it, close</button>
+    </div>
+  </div>
+  <script>
+    function copyPassword() {
+        const textToCopy = document.getElementById('generatedPasswordTxt').innerText;
+        navigator.clipboard.writeText(textToCopy).then(() => {
+            const btn = document.getElementById('btnCopyPass');
+            btn.textContent = 'Copied!';
+            btn.style.background = '#dcfce7';
+            btn.style.color = '#166534';
+            btn.style.borderColor = '#dcfce7';
+            setTimeout(() => {
+                btn.textContent = 'Copy';
+                btn.style.background = '#fff';
+                btn.style.color = '#101828';
+                btn.style.borderColor = '#e5e7eb';
+            }, 2000);
+        });
+    }
+    function closePasswordReveal() {
+        document.getElementById('passwordRevealModal').classList.remove('active');
+    }
+  </script>
+  <?php endif; ?>
 
   <!-- Toast Container -->
   <div class="toast-container" id="toastContainer">

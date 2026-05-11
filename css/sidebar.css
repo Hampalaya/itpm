@@ -325,7 +325,110 @@
   stroke-width: 2;
   fill: none;
 }
+/* Profile Popup Menu */
+.profile-popup {
+  position: absolute;
+  bottom: 80px;
+  left: 20px;
+  width: calc(100% - 40px);
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+  border: 1px solid #e5e7eb;
+  padding: 8px;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(10px);
+  transition: all 0.2s ease;
+  z-index: 1000;
+}
 
+.profile-popup.active {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+}
+
+.popup-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #374151;
+  cursor: pointer;
+  text-decoration: none;
+  transition: background 0.15s;
+}
+
+.popup-item:hover {
+  background: #f3f4f6;
+}
+
+.popup-item.text-danger {
+  color: #ef4444;
+}
+
+.popup-item.text-danger:hover {
+  background: #fee2e2;
+}
+
+/* Sidebar Modal (Global) */
+.sidebar-modal-overlay {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.5);
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  visibility: hidden;
+  transition: all 0.2s ease;
+}
+
+.sidebar-modal-overlay.active {
+  opacity: 1;
+  visibility: visible;
+}
+
+.sidebar-modal {
+  background: white;
+  border-radius: 12px;
+  width: 90%;
+  max-width: 400px;
+  padding: 24px;
+  box-shadow: 0 10px 40px rgba(0,0,0,0.15);
+  transform: translateY(20px);
+  transition: all 0.3s ease;
+}
+
+.sidebar-modal-overlay.active .sidebar-modal {
+  transform: translateY(0);
+}
+
+.sidebar-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.sidebar-modal-header h3 {
+  margin: 0;
+  font-size: 18px;
+  color: #101828;
+}
+
+.sidebar-modal-close {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #6b7280;
+  padding: 4px;
+}
 /* Main Content Wrapper */
 .main-content-wrapper {
   flex: 1;

@@ -102,22 +102,56 @@ $currentPage = basename($_SERVER['PHP_SELF'], '.php');
 
   <!-- Footer: User Profile -->
   <div class="sidebar-footer">
-    <div class="user-profile">
+    <div class="user-profile" id="userProfileBtn">
       <div class="user-avatar"><?= $userInitial ?></div>
       <div class="user-info">
         <div class="user-name"><?= $userName ?></div>
         <div class="user-role"><?= $userRole ?></div>
       </div>
-      <a href="logout.php" class="user-logout" title="Logout">
-        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
-          <polyline points="16 17 21 12 16 7"></polyline>
-          <line x1="21" y1="12" x2="9" y2="12"></line>
-        </svg>
+      <div class="user-dropdown">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+      </div>
+    </div>
+
+    <!-- Profile Popup Menu -->
+    <div class="profile-popup" id="profilePopup">
+      <div class="popup-item" onclick="openSidebarChangePassword()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+        Change Password
+      </div>
+      <a href="logout.php" class="popup-item text-danger">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+        Logout
       </a>
     </div>
   </div>
 </nav>
+
+<!-- Change Password Modal (Global) -->
+<div class="sidebar-modal-overlay" id="sidebarChangePassModal">
+  <div class="sidebar-modal">
+    <div class="sidebar-modal-header">
+      <h3>Change Password</h3>
+      <button onclick="closeSidebarChangePassword()" class="sidebar-modal-close">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+      </button>
+    </div>
+    <form method="post" action="change_password.php" id="sidebarChangePassForm">
+      <div style="margin-bottom: 16px;">
+        <label style="display:block;font-size:13px;font-weight:500;margin-bottom:6px;color:#374151">New Password</label>
+        <input type="password" name="new_password" required minlength="6" style="width:100%;padding:10px;border:1px solid #e5e7eb;border-radius:8px;">
+      </div>
+      <div style="margin-bottom: 24px;">
+        <label style="display:block;font-size:13px;font-weight:500;margin-bottom:6px;color:#374151">Confirm Password</label>
+        <input type="password" name="confirm_password" required minlength="6" style="width:100%;padding:10px;border:1px solid #e5e7eb;border-radius:8px;">
+      </div>
+      <div style="display:flex;justify-content:flex-end;gap:12px;">
+        <button type="button" onclick="closeSidebarChangePassword()" style="padding:8px 16px;border-radius:8px;background:#fff;border:1px solid #e5e7eb;font-weight:600;cursor:pointer">Cancel</button>
+        <button type="submit" style="padding:8px 16px;border-radius:8px;background:#00bc7d;color:white;border:none;font-weight:600;cursor:pointer">Save Password</button>
+      </div>
+    </form>
+  </div>
+</div>
 
 <!-- Mobile Toggle Button (outside sidebar for positioning) -->
 <button class="mobile-toggle" id="mobileToggle" aria-label="Open menu">

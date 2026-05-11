@@ -13,7 +13,11 @@ if (!isset($_SESSION['user_id'])) {
 $validationResults = [];
 $stats = ['total' => 0, 'high' => 0, 'medium' => 0, 'low' => 0];
 
-// Only run validation if button was clicked
+// Only run validation if button was clicked OR if it's the first load (to ensure persistency)
+if (!isset($_POST['run_validation']) && !isset($_GET['auto_run'])) {
+    $_GET['auto_run'] = 1; // Auto-run by default so it doesn't show "All Clear!" incorrectly
+}
+
 if (isset($_POST['run_validation']) || isset($_GET['auto_run'])) {
     
     // 1. Students with missing/invalid LRN (HIGH)
@@ -186,7 +190,7 @@ if (isset($_POST['run_validation']) || isset($_GET['auto_run'])) {
 
     <!-- Toast Container -->
     <div class="toast-container" id="toastContainer">
-      <?php if (isset($_POST['run_validation']) || isset($_GET['auto_run'])): ?>
+      <?php if (isset($_POST['run_validation'])): ?>
         <div class="toast success">
           <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
             <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>

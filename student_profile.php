@@ -125,6 +125,12 @@ if (isset($_GET['export'])) {
 }
 
 // ========== FETCH & FILTER STUDENTS ==========
+function pageUrl($pageParam, $page) {
+  $query = $_GET;
+  $query[$pageParam] = $page;
+  return '?' . htmlspecialchars(http_build_query($query), ENT_QUOTES, 'UTF-8');
+}
+
 $search = trim($_GET['search'] ?? '');
 $gradeFilter = $_GET['grade_filter'] ?? '';
 $sectionFilter = $_GET['section_filter'] ?? '';
@@ -163,19 +169,33 @@ if (($_SESSION['role'] ?? '') === 'encoder' && !empty($_SESSION['assigned_sectio
   $params[] = $_SESSION['assigned_section'];
 }
 
+$studentsPerPage = 10;
+$page = max(1, (int)($_GET['page'] ?? 1));
+$baseFromSql = "FROM students s
+        LEFT JOIN measurements m ON s.id = m.student_id";
+$whereSql = $where ? " WHERE " . implode(' AND ', $where) : "";
+$countStmt = $pdo->prepare("SELECT COUNT(DISTINCT s.id) " . $baseFromSql . $whereSql);
+$countStmt->execute($params);
+$totalStudents = (int)$countStmt->fetchColumn();
+$totalPages = max(1, (int)ceil($totalStudents / $studentsPerPage));
+$page = min($page, $totalPages);
+$offset = ($page - 1) * $studentsPerPage;
+
 $sql = "SELECT s.*, 
         MAX(CASE WHEN m.type = 'baseline' THEN m.nutritional_status ELSE NULL END) as baseline_status,
         MAX(CASE WHEN m.type = 'baseline' THEN m.bmi ELSE NULL END) as baseline_bmi,
         MAX(CASE WHEN m.type = 'endline' THEN m.nutritional_status ELSE NULL END) as endline_status,
         MAX(CASE WHEN m.type = 'endline' THEN m.bmi ELSE NULL END) as endline_bmi
-        FROM students s
-        LEFT JOIN measurements m ON s.id = m.student_id";
-if ($where) $sql .= " WHERE " . implode(' AND ', $where);
-$sql .= " GROUP BY s.id ORDER BY s.grade_level, s.section, s.last_name";
+        " . $baseFromSql . $whereSql . "
+        GROUP BY s.id
+        ORDER BY s.grade_level, s.section, s.last_name
+        LIMIT $studentsPerPage OFFSET $offset";
 
 $stmt = $pdo->prepare($sql);
 $stmt->execute($params);
 $students = $stmt->fetchAll();
+$studentsStart = $totalStudents > 0 ? $offset + 1 : 0;
+$studentsEnd = min($offset + count($students), $totalStudents);
 
 // Determine if an LRN is currently invalid or duplicated (to unlock for encoders)
 function isLrnIssue($pdo, $lrn, $studentId) {
@@ -314,7 +334,7 @@ $showAddModal = isset($_GET['add']) || (isset($_POST['action']) && $_POST['actio
         </div>
 
         <!-- Results Info -->
-        <div class="results-info">Showing <?= count($students) ?> student<?= count($students) !== 1 ? 's' : '' ?></div>
+        <div class="results-info">Showing <?= $studentsStart ?> to <?= $studentsEnd ?> of <?= $totalStudents ?> student<?= $totalStudents !== 1 ? 's' : '' ?></div>
 
         <!-- Student Table -->
         <div class="table-card">
@@ -393,6 +413,16 @@ $showAddModal = isset($_GET['add']) || (isset($_POST['action']) && $_POST['actio
                 <?php endif; ?>
               </tbody>
             </table>
+          </div>
+          <div class="pagination">
+            <div class="pagination-info">
+              Showing <span><?= $studentsStart ?></span> to <span><?= $studentsEnd ?></span> of <span><?= $totalStudents ?></span> students
+            </div>
+            <div class="pagination-controls" aria-label="Student profile pagination">
+              <a class="page-btn page-btn-text <?= $page <= 1 ? 'disabled' : '' ?>" href="<?= $page <= 1 ? '#' : pageUrl('page', $page - 1) ?>">Previous</a>
+              <span class="page-count">Page <?= $page ?> of <?= $totalPages ?></span>
+              <a class="page-btn page-btn-text <?= $page >= $totalPages ? 'disabled' : '' ?>" href="<?= $page >= $totalPages ? '#' : pageUrl('page', $page + 1) ?>">Next</a>
+            </div>
           </div>
         </div>
       </main>

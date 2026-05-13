@@ -185,7 +185,6 @@ if (isset($_POST['run_validation']) || isset($_GET['auto_run'])) {
                     <?php else: ?>
                       <a href="student_profile.php?edit=<?= $issue['id'] ?>" class="btn-sm primary">Fix</a>
                     <?php endif; ?>
-                    <button class="btn-sm" onclick="this.closest('.validation-item').style.opacity='0.5';this.disabled=true">Ignore</button>
                   </div>
                 </div>
                 <?php endforeach; ?>

@@ -240,6 +240,7 @@ $monthly = max(0, $total - $baseline - $endline);
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" type="image/png" href="images/logo_feed.png?v=1">
   <title>Anthropometric Measurements</title>
   <link rel="stylesheet" href="css/measurement.css">
   <link rel="stylesheet" href="css/sidebar.css" />

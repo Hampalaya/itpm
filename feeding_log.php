@@ -78,6 +78,7 @@ $showToast = isset($_GET['saved']);
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="icon" type="image/png" href="images/logo_feed.png?v=1">
   <title>FEED System - Feeding Log</title>
   <link rel="stylesheet" href="css/feeding_log.css" />
   <link rel="stylesheet" href="css/sidebar.css" />

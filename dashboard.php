@@ -201,6 +201,7 @@ $chartData = [
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" type="image/png" href="images/logo_feed.png?v=1">
     <title>FEED System - Dashboard</title>
     <link rel="stylesheet" href="css/dashboard.css" />
     <link rel="stylesheet" href="css/sidebar.css" />

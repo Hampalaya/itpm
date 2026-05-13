@@ -79,7 +79,7 @@ if (isset($_GET['export']) || isset($_POST['generate'])) {
                     FROM students s $whereClause ORDER BY grade_level, section, last_name";
             $stmt = $pdo->prepare($sql); $stmt->execute($params);
             foreach ($stmt->fetchAll() as $row) {
-                fputcsv($out, [$row['lrn'], $row['name'], "Grade {$row['grade_level']}-{$row['section']}",
+                fputcsv($out, ["=\"{$row['lrn']}\"", $row['name'], "Grade {$row['grade_level']}-{$row['section']}",
                              $row['age'], $row['sex'], $row['school_year'], $row['status']]);
             }
             break;

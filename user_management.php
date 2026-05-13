@@ -113,6 +113,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && in_array
     }
 }
 
+function pageUrl($pageParam, $page) {
+    $query = $_GET;
+    $query[$pageParam] = $page;
+    return '?' . htmlspecialchars(http_build_query($query), ENT_QUOTES, 'UTF-8');
+}
+
 // ========== FETCH USERS ==========
 $search = trim($_GET['search'] ?? '');
 $where = []; $params = [];
@@ -120,11 +126,23 @@ if ($search) {
     $where[] = "(full_name LIKE ? OR username LIKE ?)";
     $params = array_merge($params, ["%$search%", "%$search%"]);
 }
+$userWhereSql = $where ? " WHERE " . implode(' AND ', $where) : "";
+$usersPerPage = 10;
+$userPage = max(1, (int)($_GET['user_page'] ?? 1));
+$countStmt = $pdo->prepare("SELECT COUNT(*) FROM users" . $userWhereSql);
+$countStmt->execute($params);
+$totalUsers = (int)$countStmt->fetchColumn();
+$totalUserPages = max(1, (int)ceil($totalUsers / $usersPerPage));
+$userPage = min($userPage, $totalUserPages);
+$usersOffset = ($userPage - 1) * $usersPerPage;
+
 $sql = "SELECT id, username, role, full_name, assigned_section, is_active, created_at, last_active FROM users";
-if ($where) $sql .= " WHERE " . implode(' AND ', $where);
-$sql .= " ORDER BY full_name";
+if ($where) $sql .= $userWhereSql;
+$sql .= " ORDER BY full_name LIMIT $usersPerPage OFFSET $usersOffset";
 $stmt = $pdo->prepare($sql); $stmt->execute($params);
 $users = $stmt->fetchAll();
+$usersStart = $totalUsers > 0 ? $usersOffset + 1 : 0;
+$usersEnd = min($usersOffset + count($users), $totalUsers);
 
 // Current user info for display
 $currentUser = $pdo->prepare("SELECT full_name, role FROM users WHERE id = ?");
@@ -133,17 +151,30 @@ $currentUser = $currentUser->fetch();
 
 // ========== FETCH AUDIT LOGS ==========
 $auditLogs = [];
+$activityPerPage = 10;
+$activityPage = max(1, (int)($_GET['activity_page'] ?? 1));
+$totalActivityLogs = 0;
+$totalActivityPages = 1;
+$activityStart = 0;
+$activityEnd = 0;
 try {
+    $totalActivityLogs = (int)$pdo->query("SELECT COUNT(*) FROM audit_logs")->fetchColumn();
+    $totalActivityPages = max(1, (int)ceil($totalActivityLogs / $activityPerPage));
+    $activityPage = min($activityPage, $totalActivityPages);
+    $activityOffset = ($activityPage - 1) * $activityPerPage;
+
     $stmt = $pdo->prepare("
         SELECT a.id, a.action, a.table_name, a.record_id, a.description, a.created_at, 
                u.full_name as actor_name, u.role as actor_role
         FROM audit_logs a
         LEFT JOIN users u ON a.user_id = u.id
         ORDER BY a.created_at DESC
-        LIMIT 50
+        LIMIT $activityPerPage OFFSET $activityOffset
     ");
     $stmt->execute();
     $auditLogs = $stmt->fetchAll();
+    $activityStart = $totalActivityLogs > 0 ? $activityOffset + 1 : 0;
+    $activityEnd = min($activityOffset + count($auditLogs), $totalActivityLogs);
 } catch (PDOException $e) {
     error_log('Audit log fetch failed: ' . $e->getMessage());
 }
@@ -321,6 +352,18 @@ try {
               <?php endif; ?>
             </tbody>
           </table>
+          <div class="pagination">
+            <div class="pagination-info">
+              Showing <span><?= $usersStart ?></span> to <span><?= $usersEnd ?></span> of <span><?= $totalUsers ?></span> users
+            </div>
+            <div class="pagination-controls" aria-label="User table pagination">
+              <a class="page-btn <?= $userPage <= 1 ? 'disabled' : '' ?>" href="<?= $userPage <= 1 ? '#' : pageUrl('user_page', $userPage - 1) ?>" aria-label="Previous users page">&laquo;</a>
+              <?php for ($i = 1; $i <= $totalUserPages; $i++): ?>
+                <a class="page-btn <?= $i === $userPage ? 'active' : '' ?>" href="<?= pageUrl('user_page', $i) ?>"><?= $i ?></a>
+              <?php endfor; ?>
+              <a class="page-btn <?= $userPage >= $totalUserPages ? 'disabled' : '' ?>" href="<?= $userPage >= $totalUserPages ? '#' : pageUrl('user_page', $userPage + 1) ?>" aria-label="Next users page">&raquo;</a>
+            </div>
+          </div>
         </div>
       </div>
       <!-- Audit Log Card -->
@@ -393,11 +436,18 @@ try {
         </table>
       </div>
       
-      <?php if (count($auditLogs) >= 50): ?>
-        <div style="padding:12px 22px;text-align:center;font-size:12px;color:#6b7280;border-top:1px solid #f3f4f6;">
-          Showing latest 50 entries • <a href="audit_logs.php" style="color:#00bc7d;text-decoration:none;font-weight:500">View all</a>
+      <div class="pagination">
+        <div class="pagination-info">
+          Showing <span><?= $activityStart ?></span> to <span><?= $activityEnd ?></span> of <span><?= $totalActivityLogs ?></span> entries
         </div>
-      <?php endif; ?>
+        <div class="pagination-controls" aria-label="Activity log pagination">
+          <a class="page-btn <?= $activityPage <= 1 ? 'disabled' : '' ?>" href="<?= $activityPage <= 1 ? '#' : pageUrl('activity_page', $activityPage - 1) ?>" aria-label="Previous activity page">&laquo;</a>
+          <?php for ($i = 1; $i <= $totalActivityPages; $i++): ?>
+            <a class="page-btn <?= $i === $activityPage ? 'active' : '' ?>" href="<?= pageUrl('activity_page', $i) ?>"><?= $i ?></a>
+          <?php endfor; ?>
+          <a class="page-btn <?= $activityPage >= $totalActivityPages ? 'disabled' : '' ?>" href="<?= $activityPage >= $totalActivityPages ? '#' : pageUrl('activity_page', $activityPage + 1) ?>" aria-label="Next activity page">&raquo;</a>
+        </div>
+      </div>
       
     </div>
     </div>

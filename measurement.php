@@ -250,6 +250,11 @@ $monthly = max(0, $total - $baseline - $endline);
   <title>Anthropometric Measurements</title>
   <link rel="stylesheet" href="css/measurement.css">
   <link rel="stylesheet" href="css/sidebar.css" />
+  <!-- Select2 CSS/JS for searchable dropdown -->
+  <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+  <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+  
   <script src="js/sidebar.js" defer></script>
   <style>
     /* ===== MODAL OVERLAY - CENTERED & FIXED ===== */
@@ -633,7 +638,7 @@ $monthly = max(0, $total - $baseline - $endline);
 
         <div class="form-group">
           <label>Student *</label>
-          <select name="student_id" required>
+          <select name="student_id" id="studentSelect" required style="width: 100%;">
             <option value="">Select student</option>
             <?php foreach ($students as $s): 
               $statusList = [];
@@ -754,6 +759,15 @@ $monthly = max(0, $total - $baseline - $endline);
         setTimeout(() => t.style.display = 'none', 300);
       }
     }, 4000);
+
+    // ===== Init Select2 =====
+    $(document).ready(function() {
+      $('#studentSelect').select2({
+        placeholder: "Search for a student...",
+        allowClear: true,
+        dropdownParent: $('#measurementModal')
+      });
+    });
   </script>
 </body>
 

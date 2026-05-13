@@ -188,8 +188,8 @@ try {
   <link rel="icon" type="image/png" href="images/logo_feed.png?v=1">
   <title>User Management</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="css/user_management.css" />
-  <link rel="stylesheet" href="css/sidebar.css" />
+  <link rel="stylesheet" href="css/user_management.css?v=20260513" />
+  <link rel="stylesheet" href="css/sidebar.css?v=20260513" />
   <script src="js/sidebar.js" defer></script>
   <style>
     /* Minimal inline styles to guarantee functionality */

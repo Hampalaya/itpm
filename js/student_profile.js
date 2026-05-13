@@ -10,7 +10,6 @@ document.addEventListener('DOMContentLoaded', function() {
   const toggleFiltersBtn = document.getElementById('toggleFilters');
   const filterButtonText = document.getElementById('filterButtonText');
   const filterPanel = document.getElementById('filterPanel');
-  let searchTimer = null;
 
   function liveSearchTable() {
     const rows = document.querySelectorAll('table tbody tr');
@@ -41,14 +40,11 @@ document.addEventListener('DOMContentLoaded', function() {
       filterSearch.value = this.value;
     }
     liveSearchTable();
-    clearTimeout(searchTimer);
-    searchTimer = setTimeout(submitSearch, 450);
   });
 
   searchInput?.addEventListener('keydown', function(e) {
     if (e.key === 'Enter') {
       e.preventDefault();
-      clearTimeout(searchTimer);
       submitSearch();
     }
   });

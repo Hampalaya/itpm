@@ -31,6 +31,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $_SESSION['username'] = $user['username'];
                 $_SESSION['role'] = $user['role'];
                 $_SESSION['assigned_section'] = $user['assigned_section'];
+                // Try to populate assigned_grade if the column exists; fail gracefully if not
+                try {
+                  $gstmt = $pdo->prepare("SELECT assigned_grade FROM users WHERE id = ?");
+                  $gstmt->execute([$user['id']]);
+                  $g = $gstmt->fetchColumn();
+                  $_SESSION['assigned_grade'] = $g !== false ? $g : null;
+                } catch (PDOException $e) {
+                  $_SESSION['assigned_grade'] = null;
+                }
+
                 logAudit($pdo, 'login', 'users', $user['id'], 'Successful login');
                 header('Location: dashboard.php');
                 exit;

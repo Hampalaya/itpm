@@ -17,7 +17,12 @@ $gradeFilter = $_GET['grade'] ?? $_POST['grade'] ?? 'all';
 // Build WHERE clauses for role-based and grade filtering
 $where = []; $params = [];
 if (($_SESSION['role'] ?? '') === 'encoder' && !empty($_SESSION['assigned_section'])) {
+  if (!empty($_SESSION['assigned_grade'])) {
     $where[] = "s.section = ?"; $params[] = $_SESSION['assigned_section'];
+    $where[] = "s.grade_level = ?"; $params[] = $_SESSION['assigned_grade'];
+  } else {
+    $where[] = "s.section = ?"; $params[] = $_SESSION['assigned_section'];
+  }
 }
 if ($gradeFilter !== 'all') {
     $where[] = "s.grade_level = ?"; $params[] = (int)$gradeFilter;

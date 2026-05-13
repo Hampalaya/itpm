@@ -19,7 +19,12 @@ $where = []; $params = [];
 
 // Role-based filter
 if (($_SESSION['role'] ?? '') === 'encoder' && !empty($_SESSION['assigned_section'])) {
+  if (!empty($_SESSION['assigned_grade'])) {
     $where[] = "s.section = ?"; $params[] = $_SESSION['assigned_section'];
+    $where[] = "s.grade_level = ?"; $params[] = $_SESSION['assigned_grade'];
+  } else {
+    $where[] = "s.section = ?"; $params[] = $_SESSION['assigned_section'];
+  }
 }
 
 // Search filter

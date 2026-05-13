@@ -1,6 +1,9 @@
 <?php
 require_once __DIR__ . '/db.php';
 
+// Use Philippine local time across the app.
+date_default_timezone_set('Asia/Manila');
+
 if (session_status() === PHP_SESSION_NONE) {
     ini_set('session.use_strict_mode', '1');
     ini_set('session.use_only_cookies', '1');

@@ -463,7 +463,8 @@ tbody td.right {
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--text-secondary);
+  text-decoration: none !important;
+  color: var(--text-primary) !important;
   transition: all 0.15s;
   font-size: 13px;
   font-weight: 500;

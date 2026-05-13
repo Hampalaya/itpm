@@ -357,11 +357,9 @@ try {
               Showing <span><?= $usersStart ?></span> to <span><?= $usersEnd ?></span> of <span><?= $totalUsers ?></span> users
             </div>
             <div class="pagination-controls" aria-label="User table pagination">
-              <a class="page-btn <?= $userPage <= 1 ? 'disabled' : '' ?>" href="<?= $userPage <= 1 ? '#' : pageUrl('user_page', $userPage - 1) ?>" aria-label="Previous users page">&laquo;</a>
-              <?php for ($i = 1; $i <= $totalUserPages; $i++): ?>
-                <a class="page-btn <?= $i === $userPage ? 'active' : '' ?>" href="<?= pageUrl('user_page', $i) ?>"><?= $i ?></a>
-              <?php endfor; ?>
-              <a class="page-btn <?= $userPage >= $totalUserPages ? 'disabled' : '' ?>" href="<?= $userPage >= $totalUserPages ? '#' : pageUrl('user_page', $userPage + 1) ?>" aria-label="Next users page">&raquo;</a>
+              <a class="page-btn page-btn-text <?= $userPage <= 1 ? 'disabled' : '' ?>" href="<?= $userPage <= 1 ? '#' : pageUrl('user_page', $userPage - 1) ?>">Previous</a>
+              <span class="page-count">Page <?= $userPage ?> of <?= $totalUserPages ?></span>
+              <a class="page-btn page-btn-text <?= $userPage >= $totalUserPages ? 'disabled' : '' ?>" href="<?= $userPage >= $totalUserPages ? '#' : pageUrl('user_page', $userPage + 1) ?>">Next</a>
             </div>
           </div>
         </div>
@@ -441,11 +439,9 @@ try {
           Showing <span><?= $activityStart ?></span> to <span><?= $activityEnd ?></span> of <span><?= $totalActivityLogs ?></span> entries
         </div>
         <div class="pagination-controls" aria-label="Activity log pagination">
-          <a class="page-btn <?= $activityPage <= 1 ? 'disabled' : '' ?>" href="<?= $activityPage <= 1 ? '#' : pageUrl('activity_page', $activityPage - 1) ?>" aria-label="Previous activity page">&laquo;</a>
-          <?php for ($i = 1; $i <= $totalActivityPages; $i++): ?>
-            <a class="page-btn <?= $i === $activityPage ? 'active' : '' ?>" href="<?= pageUrl('activity_page', $i) ?>"><?= $i ?></a>
-          <?php endfor; ?>
-          <a class="page-btn <?= $activityPage >= $totalActivityPages ? 'disabled' : '' ?>" href="<?= $activityPage >= $totalActivityPages ? '#' : pageUrl('activity_page', $activityPage + 1) ?>" aria-label="Next activity page">&raquo;</a>
+          <a class="page-btn page-btn-text <?= $activityPage <= 1 ? 'disabled' : '' ?>" href="<?= $activityPage <= 1 ? '#' : pageUrl('activity_page', $activityPage - 1) ?>">Previous</a>
+          <span class="page-count">Page <?= $activityPage ?> of <?= $totalActivityPages ?></span>
+          <a class="page-btn page-btn-text <?= $activityPage >= $totalActivityPages ? 'disabled' : '' ?>" href="<?= $activityPage >= $totalActivityPages ? '#' : pageUrl('activity_page', $activityPage + 1) ?>">Next</a>
         </div>
       </div>
       

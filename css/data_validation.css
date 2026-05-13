@@ -627,9 +627,11 @@ input:checked + .toggle-slider::before { transform: translateX(16px); }
   border: 1px solid var(--border);
   background: var(--card-bg);
   border-radius: var(--radius-sm);
-  display: flex;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
+  text-decoration: none !important;
+  color: var(--text-primary) !important;
   cursor: pointer;
   font-size: 13px;
   font-weight: 500;

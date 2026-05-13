@@ -119,7 +119,7 @@ $showToast = isset($_GET['saved']);
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <link rel="icon" type="image/png" href="images/logo_feed.png?v=1">
   <title>FEED System - Feeding Log</title>
-  <link rel="stylesheet" href="css/feeding_log.css" />
+  <link rel="stylesheet" href="css/feeding_log.css?v=2" />
   <link rel="stylesheet" href="css/sidebar.css" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
   <script src="js/sidebar.js" defer></script>
@@ -128,7 +128,7 @@ $showToast = isset($_GET['saved']);
   <div class="app-container">
     <?php include 'includes/sidebar.php'; ?>
     <div class="main-content-wrapper" id="mainWrapper">
-      <main class="page-content main-content">
+      <main class="page-content">
         
         <div class="page-header">
           <h1>Feeding Log</h1>
@@ -237,16 +237,25 @@ $showToast = isset($_GET['saved']);
 
           <!-- Table -->
           <div class="table-container">
-            <table>
+            <table class="feeding-table">
+              <colgroup>
+                <col class="col-number">
+                <col class="col-student">
+                <col class="col-grade">
+                <col class="col-present">
+                <col class="col-meal">
+                <col class="col-status">
+                <col class="col-remarks">
+              </colgroup>
               <thead>
                 <tr>
-                  <th style="width:60px">#</th>
-                  <th>Student</th>
-                  <th>Grade/Section</th>
-                  <th class="center">Present</th>
-                  <th class="center">Meal</th>
-                  <th>Status</th>
-                  <th>Remarks</th>
+                  <th class="col-number">#</th>
+                  <th class="col-student">Student</th>
+                  <th class="col-grade">Grade/Section</th>
+                  <th class="center col-present">Present</th>
+                  <th class="center col-meal">Meal</th>
+                  <th class="col-status">Status</th>
+                  <th class="col-remarks">Remarks</th>
                 </tr>
               </thead>
               <tbody id="studentTableBody">
@@ -257,17 +266,17 @@ $showToast = isset($_GET['saved']);
                     $status = $s['is_present'] === null ? 'pending' : ($s['is_present'] ? 'present' : 'absent');
                   ?>
                   <tr data-status="<?= $status ?>" data-name="<?= strtolower(htmlspecialchars($s['name'])) ?>">
-                    <td><?= $i + 1 ?></td>
-                    <td><?= htmlspecialchars($s['name']) ?></td>
-                    <td>Grade <?= $s['grade_level'] ?> - <?= $s['section'] ?></td>
-                    <td class="center checkbox-wrapper">
+                    <td class="col-number"><?= $i + 1 ?></td>
+                    <td class="col-student"><?= htmlspecialchars($s['name']) ?></td>
+                    <td class="col-grade">Grade <?= $s['grade_level'] ?> - <?= $s['section'] ?></td>
+                    <td class="center checkbox-wrapper col-present">
                       <input type="checkbox" name="attendance[<?= $s['id'] ?>][present]" value="1" <?= $s['is_present'] ? 'checked' : '' ?> id="present_<?= $s['id'] ?>">
                     </td>
-                    <td class="center checkbox-wrapper">
+                    <td class="center checkbox-wrapper col-meal">
                       <input type="checkbox" name="attendance[<?= $s['id'] ?>][meal]" value="1" <?= $s['meal_served'] ? 'checked' : '' ?> id="meal_<?= $s['id'] ?>" <?= !$s['is_present'] ? 'disabled' : '' ?>>
                     </td>
-                    <td><span class="status-badge status-<?= $status ?>"><?= ucfirst($status) ?></span></td>
-                    <td>
+                    <td class="col-status"><span class="status-badge status-<?= $status ?>"><?= ucfirst($status) ?></span></td>
+                    <td class="col-remarks">
                       <input type="text" class="remarks-input" name="attendance[<?= $s['id'] ?>][remarks]" value="<?= htmlspecialchars($s['remarks'] ?? '') ?>" placeholder="Optional notes">
                     </td>
                   </tr>

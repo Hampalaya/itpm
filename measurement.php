@@ -35,8 +35,14 @@ if (isset($_GET['export'])) {
     $params[] = $sectionFilter;
   }
   if (($_SESSION['role'] ?? '') === 'encoder' && !empty($_SESSION['assigned_section'])) {
-    $where[] = "s.section = ?";
-    $params[] = $_SESSION['assigned_section'];
+    if (!empty($_SESSION['assigned_grade'])) {
+      $where[] = "s.section = ? AND s.grade_level = ?";
+      $params[] = $_SESSION['assigned_section'];
+      $params[] = $_SESSION['assigned_grade'];
+    } else {
+      $where[] = "s.section = ?";
+      $params[] = $_SESSION['assigned_section'];
+    }
   }
 
   $sql = "SELECT m.*, s.first_name, s.last_name, s.grade_level, s.section, u.full_name as recorder_name
@@ -197,8 +203,14 @@ if ($sectionFilter) {
   $params[] = $sectionFilter;
 }
 if (($_SESSION['role'] ?? '') === 'encoder' && !empty($_SESSION['assigned_section'])) {
-  $where[] = "s.section = ?";
-  $params[] = $_SESSION['assigned_section'];
+  if (!empty($_SESSION['assigned_grade'])) {
+    $where[] = "s.section = ? AND s.grade_level = ?";
+    $params[] = $_SESSION['assigned_section'];
+    $params[] = $_SESSION['assigned_grade'];
+  } else {
+    $where[] = "s.section = ?";
+    $params[] = $_SESSION['assigned_section'];
+  }
 }
 
 $measurementsPerPage = 10;
@@ -229,8 +241,14 @@ $measurementsEnd = min($offset + count($measurements), $totalMeasurements);
 $studentWhere = [];
 $studentParams = [];
 if (($_SESSION['role'] ?? '') === 'encoder' && !empty($_SESSION['assigned_section'])) {
-  $studentWhere[] = "s.section = ?";
-  $studentParams[] = $_SESSION['assigned_section'];
+  if (!empty($_SESSION['assigned_grade'])) {
+    $studentWhere[] = "s.section = ? AND s.grade_level = ?";
+    $studentParams[] = $_SESSION['assigned_section'];
+    $studentParams[] = $_SESSION['assigned_grade'];
+  } else {
+    $studentWhere[] = "s.section = ?";
+    $studentParams[] = $_SESSION['assigned_section'];
+  }
 }
 $studentSql = "SELECT s.id, CONCAT(s.first_name,' ',s.last_name) as full_name, s.grade_level, s.section,
                MAX(CASE WHEN m.type = 'baseline' THEN 1 ELSE 0 END) as has_baseline,

@@ -53,6 +53,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && in_array
     $username = trim($_POST['username'] ?? '');
     $role = $_POST['role'] ?? 'encoder';
     $section = trim($_POST['assigned_section'] ?? '');
+    $assigned_grade = trim($_POST['assigned_grade'] ?? '');
     
     // For inserting, default to active (1), for updating rely on the post data
     $isActive = $_POST['action'] === 'add' ? 1 : (($_POST['is_active'] ?? '0') === '1' ? 1 : 0);
@@ -80,6 +81,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && in_array
                         
                         $stmt = $pdo->prepare("INSERT INTO users (username, password_hash, role, full_name, assigned_section, is_active) VALUES (?, ?, ?, ?, ?, ?)");
                         $stmt->execute([$username, $hash, $role, $fullName, $role === 'encoder' && $section ? $section : null, $isActive]);
+                        // Save assigned_grade if provided (DB may not have this column yet)
+                        if ($role === 'encoder' && $assigned_grade !== '') {
+                          try {
+                            $lastId = $pdo->lastInsertId();
+                            $gstmt = $pdo->prepare("UPDATE users SET assigned_grade = ? WHERE id = ?");
+                            $gstmt->execute([$assigned_grade, $lastId]);
+                          } catch (PDOException $e) {
+                            // Ignore if column doesn't exist
+                          }
+                        }
                         
                         // Show temp password in toast
                         $generatedPassword = $tempPass;
@@ -103,6 +114,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && in_array
                 } else {
                     $stmt = $pdo->prepare("UPDATE users SET full_name=?, role=?, assigned_section=?, is_active=? WHERE id=?");
                     $stmt->execute([$fullName, $role, $role === 'encoder' && $section ? $section : null, $isActive, $userId]);
+                    // Update assigned_grade if provided (safe if column missing)
+                    try {
+                      $gstmt = $pdo->prepare("UPDATE users SET assigned_grade = ? WHERE id = ?");
+                      $gstmt->execute([$assigned_grade !== '' ? $assigned_grade : null, $userId]);
+                    } catch (PDOException $e) {
+                      // ignore
+                    }
                     logAudit($pdo,'update','users',$userId,"Updated user: $username");
                     $message = 'User updated.'; $messageType = 'success';
                 }
@@ -142,6 +160,22 @@ if ($where) $sql .= $userWhereSql;
 $sql .= " ORDER BY full_name LIMIT $usersPerPage OFFSET $usersOffset";
 $stmt = $pdo->prepare($sql); $stmt->execute($params);
 $users = $stmt->fetchAll();
+// Try to enrich users with assigned_grade if the column exists (fail gracefully)
+try {
+  if (!empty($users)) {
+    $ids = array_column($users, 'id');
+    $placeholders = implode(',', array_fill(0, count($ids), '?'));
+    $gstmt = $pdo->prepare("SELECT id, assigned_grade FROM users WHERE id IN ($placeholders)");
+    $gstmt->execute($ids);
+    $gradeRows = $gstmt->fetchAll();
+    $gradeMap = [];
+    foreach ($gradeRows as $gr) $gradeMap[$gr['id']] = $gr['assigned_grade'];
+    foreach ($users as &$uu) $uu['assigned_grade'] = $gradeMap[$uu['id']] ?? null;
+    unset($uu);
+  }
+} catch (PDOException $e) {
+  // ignore if column missing
+}
 $usersStart = $totalUsers > 0 ? $usersOffset + 1 : 0;
 $usersEnd = min($usersOffset + count($users), $totalUsers);
 
@@ -497,6 +531,16 @@ try {
           </select>
         </div>
         
+        <div class="form-group">
+          <label class="form-label">Assigned Grade <span style="color:#9ca3af;font-weight:400">(optional; leave blank for all grades in section)</span></label>
+          <select class="form-select" id="inputGrade" name="assigned_grade">
+            <option value="">-- All Grades --</option>
+            <?php for ($g = 1; $g <= 6; $g++): ?>
+              <option value="<?= $g ?>">Grade <?= $g ?></option>
+            <?php endfor; ?>
+          </select>
+        </div>
+        
         <div class="form-group" id="statusGroup">
           <label class="form-label">Status</label>
           <select class="form-select" id="inputStatus" name="is_active">
@@ -622,6 +666,7 @@ try {
     document.getElementById('inputName').value = '';
     document.getElementById('inputUsername').value = '';
     document.getElementById('inputSection').value = '';
+    document.getElementById('inputGrade').value = '';
     
     document.getElementById('statusGroup').style.display = 'none';
 
@@ -646,6 +691,7 @@ try {
     document.getElementById('inputName').value = user.full_name;
     document.getElementById('inputUsername').value = user.username;
     document.getElementById('inputSection').value = user.assigned_section || '';
+    document.getElementById('inputGrade').value = user.assigned_grade || '';
     
     document.getElementById('statusGroup').style.display = 'block';
 

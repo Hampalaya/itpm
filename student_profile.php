@@ -87,8 +87,14 @@ if (isset($_GET['export'])) {
     $params[] = $schoolYearFilter;
   }
   if (($_SESSION['role'] ?? '') === 'encoder' && !empty($_SESSION['assigned_section'])) {
-    $where[] = "section = ?";
-    $params[] = $_SESSION['assigned_section'];
+    if (!empty($_SESSION['assigned_grade'])) {
+      $where[] = "section = ? AND grade_level = ?";
+      $params[] = $_SESSION['assigned_section'];
+      $params[] = $_SESSION['assigned_grade'];
+    } else {
+      $where[] = "section = ?";
+      $params[] = $_SESSION['assigned_section'];
+    }
   }
 
   $sql = "SELECT lrn, first_name, middle_name, last_name, grade_level, section, age, sex, school_year, created_at FROM students";
@@ -163,10 +169,16 @@ if ($schoolYearFilter) {
   $params[] = $schoolYearFilter;
 }
 
-// Role-based: encoder sees only their assigned_section when assigned.
+// Role-based: encoder sees only their assigned_section (and grade, if set) when assigned.
 if (($_SESSION['role'] ?? '') === 'encoder' && !empty($_SESSION['assigned_section'])) {
-  $where[] = "s.section = ?";
-  $params[] = $_SESSION['assigned_section'];
+  if (!empty($_SESSION['assigned_grade'])) {
+    $where[] = "s.section = ? AND s.grade_level = ?";
+    $params[] = $_SESSION['assigned_section'];
+    $params[] = $_SESSION['assigned_grade'];
+  } else {
+    $where[] = "s.section = ?";
+    $params[] = $_SESSION['assigned_section'];
+  }
 }
 
 $studentsPerPage = 10;

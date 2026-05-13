@@ -55,11 +55,27 @@ function timeAgo(?string $dateTime): string {
 }
 
 $roleRestricted = ($_SESSION['role'] ?? '') === 'encoder' && !empty($_SESSION['assigned_section']);
-$studentWhere = $roleRestricted ? 'WHERE s.section = ?' : '';
-$studentParams = $roleRestricted ? [$_SESSION['assigned_section']] : [];
-$measurementWhere = $roleRestricted ? 'WHERE s.section = ?' : '';
-$measurementParams = $studentParams;
-$measurementAnd = $roleRestricted ? 'AND s.section = ?' : '';
+if ($roleRestricted) {
+  if (!empty($_SESSION['assigned_grade'])) {
+    $studentWhere = 'WHERE s.section = ? AND s.grade_level = ?';
+    $studentParams = [$_SESSION['assigned_section'], $_SESSION['assigned_grade']];
+    $measurementWhere = 'WHERE s.section = ? AND s.grade_level = ?';
+    $measurementParams = $studentParams;
+    $measurementAnd = 'AND s.section = ? AND s.grade_level = ?';
+  } else {
+    $studentWhere = 'WHERE s.section = ?';
+    $studentParams = [$_SESSION['assigned_section']];
+    $measurementWhere = 'WHERE s.section = ?';
+    $measurementParams = $studentParams;
+    $measurementAnd = 'AND s.section = ?';
+  }
+} else {
+  $studentWhere = '';
+  $studentParams = [];
+  $measurementWhere = '';
+  $measurementParams = [];
+  $measurementAnd = '';
+}
 
 $totalStudents = (int) scalarValue($pdo, "SELECT COUNT(*) FROM students s $studentWhere", $studentParams);
 $totalBeneficiaries = (int) scalarValue(

@@ -24,9 +24,9 @@ $currentPage = basename($_SERVER['PHP_SELF'], '.php');
 <nav class="sidebar" id="sidebar">
   <!-- Header -->
   <div class="sidebar-header">
-    <div class="header-left">
-      <div class="header-icon">
-        <svg viewBox="0 0 24 24"><path d="M7 3v18M3 7h8c0 0 0-4-4-4s-4 4-4 4zm-1 14h12c0 0 0-3 3-3s3 3 3 3M17 3v18M21 7h-8c0 0 0-4 4-4s4 4 4 4z"/></svg>
+    <div class="header-left" style="gap: 8px;">
+      <div class="header-icon" style="background: transparent; box-shadow: none; border-radius: 0; width: 44px; height: 44px;">
+        <img src="images/logo_feed.png" alt="Logo" style="width: 100%; height: 100%; object-fit: contain;">
       </div>
       <div class="header-text">
         <h2>FEED</h2>

@@ -210,17 +210,23 @@ $measurements = $stmt->fetchAll();
 $studentWhere = [];
 $studentParams = [];
 if (($_SESSION['role'] ?? '') === 'encoder' && !empty($_SESSION['assigned_section'])) {
-  $studentWhere[] = "section = ?";
+  $studentWhere[] = "s.section = ?";
   $studentParams[] = $_SESSION['assigned_section'];
 }
-$studentSql = "SELECT id, CONCAT(first_name,' ',last_name) as full_name, grade_level, section FROM students";
+$studentSql = "SELECT s.id, CONCAT(s.first_name,' ',s.last_name) as full_name, s.grade_level, s.section,
+               MAX(CASE WHEN m.type = 'baseline' THEN 1 ELSE 0 END) as has_baseline,
+               MAX(CASE WHEN m.type = 'endline' THEN 1 ELSE 0 END) as has_endline
+               FROM students s
+               LEFT JOIN measurements m ON s.id = m.student_id";
 if ($studentWhere) $studentSql .= " WHERE " . implode(' AND ', $studentWhere);
-$studentSql .= " ORDER BY grade_level, section, last_name";
+$studentSql .= " GROUP BY s.id ORDER BY s.grade_level, s.section, s.last_name";
 $studentStmt = $pdo->prepare($studentSql);
 $studentStmt->execute($studentParams);
 $students = $studentStmt->fetchAll();
 
 $edit = null;
+$preSelectedStudentId = isset($_GET['student_id']) ? (int)$_GET['student_id'] : null;
+
 if (isset($_GET['edit'])) {
   $stmt = $pdo->prepare("SELECT * FROM measurements WHERE id = ?");
   $stmt->execute([(int)$_GET['edit']]);
@@ -240,6 +246,7 @@ $monthly = max(0, $total - $baseline - $endline);
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" type="image/png" href="images/logo_feed.png?v=1">
   <title>Anthropometric Measurements</title>
   <link rel="stylesheet" href="css/measurement.css">
   <link rel="stylesheet" href="css/sidebar.css" />
@@ -628,9 +635,14 @@ $monthly = max(0, $total - $baseline - $endline);
           <label>Student *</label>
           <select name="student_id" required>
             <option value="">Select student</option>
-            <?php foreach ($students as $s): ?>
-              <option value="<?= $s['id'] ?>" <?= (isset($edit['student_id']) && $edit['student_id'] == $s['id']) ? 'selected' : '' ?>>
-                <?= htmlspecialchars($s['full_name']) ?> (Grade <?= $s['grade_level'] ?>-<?= $s['section'] ?>)
+            <?php foreach ($students as $s): 
+              $statusList = [];
+              if ($s['has_baseline']) $statusList[] = 'Baseline';
+              if ($s['has_endline']) $statusList[] = 'Endline';
+              $statusStr = empty($statusList) ? 'no measurements' : 'has ' . implode(' & ', $statusList);
+            ?>
+              <option value="<?= $s['id'] ?>" <?= (isset($edit['student_id']) && $edit['student_id'] == $s['id']) || ($preSelectedStudentId === $s['id']) ? 'selected' : '' ?>>
+                <?= htmlspecialchars($s['full_name']) ?> (Grade <?= $s['grade_level'] ?>-<?= $s['section'] ?>) — [<?= $statusStr ?>]
               </option>
             <?php endforeach; ?>
           </select>

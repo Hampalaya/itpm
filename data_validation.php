@@ -87,6 +87,7 @@ if (isset($_POST['run_validation']) || isset($_GET['auto_run'])) {
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" type="image/png" href="images/logo_feed.png?v=1">
     <title>FEED System - Data Validation</title>
     <link rel="stylesheet" href="css/sidebar.css" />
     <link rel="stylesheet" href="css/data_validation.css" />

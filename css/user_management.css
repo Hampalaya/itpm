@@ -479,3 +479,26 @@ body {
     flex-wrap: wrap;
   }
 }
+
+/* In your user_management.css or <style> block */
+
+/* Action badge variants */
+.action-insert { background: #dcfce7; color: #166534; }
+.action-update { background: #fef3c7; color: #92400e; }
+.action-delete { background: #fee2e2; color: #b91c1c; }
+
+/* Audit log table tweaks */
+.user-table td code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+.user-table td div[style*="max-width"] {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Hover effect for log rows */
+.user-table tbody tr:hover td {
+  background: #fafafa;
+}

@@ -163,9 +163,15 @@ if (($_SESSION['role'] ?? '') === 'encoder' && !empty($_SESSION['assigned_sectio
   $params[] = $_SESSION['assigned_section'];
 }
 
-$sql = "SELECT * FROM students";
+$sql = "SELECT s.*, 
+        MAX(CASE WHEN m.type = 'baseline' THEN m.nutritional_status ELSE NULL END) as baseline_status,
+        MAX(CASE WHEN m.type = 'baseline' THEN m.bmi ELSE NULL END) as baseline_bmi,
+        MAX(CASE WHEN m.type = 'endline' THEN m.nutritional_status ELSE NULL END) as endline_status,
+        MAX(CASE WHEN m.type = 'endline' THEN m.bmi ELSE NULL END) as endline_bmi
+        FROM students s
+        LEFT JOIN measurements m ON s.id = m.student_id";
 if ($where) $sql .= " WHERE " . implode(' AND ', $where);
-$sql .= " ORDER BY grade_level, section, last_name";
+$sql .= " GROUP BY s.id ORDER BY s.grade_level, s.section, s.last_name";
 
 $stmt = $pdo->prepare($sql);
 $stmt->execute($params);
@@ -199,6 +205,7 @@ $showAddModal = isset($_GET['add']) || (isset($_POST['action']) && $_POST['actio
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="icon" type="image/png" href="images/logo_feed.png?v=1">
   <title>FEED System - Student Profiles</title>
   <link rel="stylesheet" href="css/sidebar.css" />
   <link rel="stylesheet" href="css/student_profile.css" />
@@ -318,8 +325,8 @@ $showAddModal = isset($_GET['add']) || (isset($_POST['action']) && $_POST['actio
                   <th>LRN</th>
                   <th>Full Name</th>
                   <th>Grade/Section</th>
-                  <th>Age</th>
-                  <th>Sex</th>
+                  <th>Baseline</th>
+                  <th>Endline</th>
                   <th class="right">Actions</th>
                 </tr>
               </thead>
@@ -332,6 +339,14 @@ $showAddModal = isset($_GET['add']) || (isset($_POST['action']) && $_POST['actio
                   <?php foreach ($students as $s):
                     $initial = strtoupper(substr($s['first_name'], 0, 1));
                     $fullName = $s['first_name'] . ' ' . (!empty($s['middle_name']) ? $s['middle_name'][0] . '. ' : '') . $s['last_name'];
+                    
+                    // Helpers for badges
+                    $badgeColors = [
+                        'Normal' => '#10b981', 
+                        'Underweight' => '#ef4444', 
+                        'Overweight' => '#f59e0b', 
+                        'Obese' => '#f97316'
+                    ];
                   ?>
                     <tr>
                       <td><?= htmlspecialchars($s['lrn']) ?></td>
@@ -343,9 +358,25 @@ $showAddModal = isset($_GET['add']) || (isset($_POST['action']) && $_POST['actio
                           </div>
                         </div>
                       </td>
-                      <td>Grade <?= (int)$s['grade_level'] ?> / <?= htmlspecialchars($s['section']) ?></td>
-                      <td><?= (int)$s['age'] ?></td>
-                      <td><?= htmlspecialchars($s['sex']) ?></td>
+                      <td>Gr. <?= (int)$s['grade_level'] ?> - <?= htmlspecialchars($s['section']) ?></td>
+                      <td>
+                        <?php if ($s['baseline_status']): ?>
+                            <span style="display:inline-block; padding: 2px 8px; border-radius: 9999px; font-size: 11px; font-weight: 500; background: <?= $badgeColors[$s['baseline_status']] ?? '#6b7280' ?>; color: white;">
+                                <?= $s['baseline_status'] ?> (BMI: <?= $s['baseline_bmi'] ?>)
+                            </span>
+                        <?php else: ?>
+                            <span style="font-size: 12px; color: #9ca3af; font-style: italic;">Pending</span>
+                        <?php endif; ?>
+                      </td>
+                      <td>
+                        <?php if ($s['endline_status']): ?>
+                            <span style="display:inline-block; padding: 2px 8px; border-radius: 9999px; font-size: 11px; font-weight: 500; background: <?= $badgeColors[$s['endline_status']] ?? '#6b7280' ?>; color: white;">
+                                <?= $s['endline_status'] ?> (BMI: <?= $s['endline_bmi'] ?>)
+                            </span>
+                        <?php else: ?>
+                            <span style="font-size: 12px; color: #9ca3af; font-style: italic;">Pending</span>
+                        <?php endif; ?>
+                      </td>
                       <td class="right">
                         <div class="action-buttons">
                           <a href="?edit=<?= $s['id'] ?><?= $search ? '&search=' . urlencode($search) : '' ?>" class="action-btn edit">

@@ -12,6 +12,45 @@ if (!isset($_SESSION['user_id'])) {
 $selectedDate = $_GET['date'] ?? date('Y-m-d');
 if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $selectedDate)) $selectedDate = date('Y-m-d');
 
+// ========== EXPORT LOGIC (Must run before HTML/Headers) ==========
+if (isset($_GET['export'])) {
+    
+    // Fetch students specifically for export
+    $whereExport = []; $paramsExport = [];
+    if (($_SESSION['role'] ?? '') === 'encoder' && !empty($_SESSION['assigned_section'])) {
+        $whereExport[] = "s.section = ?"; $paramsExport[] = $_SESSION['assigned_section'];
+    }
+    
+    $sqlExport = "SELECT s.id, CONCAT(s.first_name, ' ', s.last_name) as name, s.grade_level, s.section,
+                   fl.is_present, fl.meal_served, fl.remarks
+            FROM students s
+            LEFT JOIN feeding_logs fl ON s.id = fl.student_id AND fl.feeding_date = ?
+            INNER JOIN measurements m ON s.id = m.student_id AND m.type = 'baseline' AND m.nutritional_status = 'Underweight'
+            " . ($whereExport ? "WHERE " . implode(' AND ', $whereExport) : "") . "
+            ORDER BY s.grade_level, s.section, s.last_name";
+            
+    $stmtExport = $pdo->prepare($sqlExport);
+    $stmtExport->execute(array_merge([$selectedDate], $paramsExport));
+    $exportStudents = $stmtExport->fetchAll();
+
+    header('Content-Type: text/csv');
+    header('Content-Disposition: attachment; filename="feeding_log_'.$selectedDate.'.csv"');
+    $out = fopen('php://output', 'w');
+    fputcsv($out, ['Date','Student','Grade/Section','Present','Meal Served','Remarks']);
+    foreach ($exportStudents as $s) {
+      fputcsv($out, [
+        $selectedDate,
+        $s['name'],
+        'Grade '.$s['grade_level'].' - '.$s['section'],
+        $s['is_present'] ? 'Yes' : 'No',
+        $s['meal_served'] ? 'Yes' : 'No',
+        $s['remarks'] ?? ''
+      ]);
+    }
+    fclose($out); 
+    exit;
+}
+
 // Handle Save Attendance (POST)
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_attendance'])) {
     $records = $_POST['attendance'] ?? [];
@@ -264,25 +303,6 @@ $showToast = isset($_GET['saved']);
     </div>
     <?php endif; ?>
   </div>
-
-  <!-- CSV Export Logic -->
-  <?php if (isset($_GET['export'])):
-    header('Content-Type: text/csv');
-    header('Content-Disposition: attachment; filename="feeding_log_'.$selectedDate.'.csv"');
-    $out = fopen('php://output', 'w');
-    fputcsv($out, ['Date','Student','Grade/Section','Present','Meal Served','Remarks']);
-    foreach ($students as $s) {
-      fputcsv($out, [
-        $selectedDate,
-        $s['name'],
-        'Grade '.$s['grade_level'].' - '.$s['section'],
-        $s['is_present'] ? 'Yes' : 'No',
-        $s['meal_served'] ? 'Yes' : 'No',
-        $s['remarks'] ?? ''
-      ]);
-    }
-    fclose($out); exit;
-  endif; ?>
 
   <script>
   // Filter chips

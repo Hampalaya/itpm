@@ -221,6 +221,8 @@ $studentStmt->execute($studentParams);
 $students = $studentStmt->fetchAll();
 
 $edit = null;
+$preSelectedStudentId = isset($_GET['student_id']) ? (int)$_GET['student_id'] : null;
+
 if (isset($_GET['edit'])) {
   $stmt = $pdo->prepare("SELECT * FROM measurements WHERE id = ?");
   $stmt->execute([(int)$_GET['edit']]);
@@ -630,7 +632,7 @@ $monthly = max(0, $total - $baseline - $endline);
           <select name="student_id" required>
             <option value="">Select student</option>
             <?php foreach ($students as $s): ?>
-              <option value="<?= $s['id'] ?>" <?= (isset($edit['student_id']) && $edit['student_id'] == $s['id']) ? 'selected' : '' ?>>
+              <option value="<?= $s['id'] ?>" <?= (isset($edit['student_id']) && $edit['student_id'] == $s['id']) || ($preSelectedStudentId === $s['id']) ? 'selected' : '' ?>>
                 <?= htmlspecialchars($s['full_name']) ?> (Grade <?= $s['grade_level'] ?>-<?= $s['section'] ?>)
               </option>
             <?php endforeach; ?>

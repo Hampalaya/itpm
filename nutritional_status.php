@@ -8,6 +8,12 @@ if (!isset($_SESSION['user_id'])) {
     header('Location: index.php'); exit;
 }
 
+function pageUrl($pageParam, $page) {
+    $query = $_GET;
+    $query[$pageParam] = $page;
+    return '?' . htmlspecialchars(http_build_query($query), ENT_QUOTES, 'UTF-8');
+}
+
 // Fetch students with baseline AND endline measurements for comparison
 $where = []; $params = [];
 
@@ -98,6 +104,16 @@ if (isset($_GET['export'])) {
     }
     fclose($out); exit;
 }
+
+$studentsPerPage = 10;
+$page = max(1, (int)($_GET['page'] ?? 1));
+$totalStudents = count($filtered);
+$totalPages = max(1, (int)ceil($totalStudents / $studentsPerPage));
+$page = min($page, $totalPages);
+$offset = ($page - 1) * $studentsPerPage;
+$pagedStudents = array_slice($filtered, $offset, $studentsPerPage);
+$studentsStart = $totalStudents > 0 ? $offset + 1 : 0;
+$studentsEnd = min($offset + count($pagedStudents), $totalStudents);
 ?>
 <!doctype html>
 <html lang="en">
@@ -291,10 +307,10 @@ if (isset($_GET['export'])) {
                 </tr>
               </thead>
               <tbody id="studentTableBody">
-                <?php if (empty($filtered)): ?>
+                <?php if (empty($pagedStudents)): ?>
                   <tr><td colspan="8" style="text-align:center;padding:2rem;color:#6b7a8d">No students with both baseline and endline measurements found.</td></tr>
                 <?php else: ?>
-                  <?php foreach ($filtered as $s): 
+                  <?php foreach ($pagedStudents as $s): 
                     $progressClass = 'progress-'.$s['progress'];
                     $baseStatusClass = 'status-'.strtolower(str_replace(' ','-',$s['base_status']));
                     $endStatusClass = 'status-'.strtolower(str_replace(' ','-',$s['end_status']));
@@ -315,6 +331,16 @@ if (isset($_GET['export'])) {
                 <?php endif; ?>
               </tbody>
             </table>
+          </div>
+          <div class="pagination">
+            <div class="pagination-info">
+              Showing <span><?= $studentsStart ?></span> to <span><?= $studentsEnd ?></span> of <span><?= $totalStudents ?></span> students
+            </div>
+            <div class="pagination-controls" aria-label="Nutritional status pagination">
+              <a class="page-btn page-btn-text <?= $page <= 1 ? 'disabled' : '' ?>" href="<?= $page <= 1 ? '#' : pageUrl('page', $page - 1) ?>">Previous</a>
+              <span class="page-count">Page <?= $page ?> of <?= $totalPages ?></span>
+              <a class="page-btn page-btn-text <?= $page >= $totalPages ? 'disabled' : '' ?>" href="<?= $page >= $totalPages ? '#' : pageUrl('page', $page + 1) ?>">Next</a>
+            </div>
           </div>
         </div>
         

@@ -450,12 +450,14 @@ tbody td.right {
 
 .pagination-controls {
   display: flex;
+  align-items: center;
   gap: 4px;
 }
 
 .page-btn {
-  width: 32px;
+  min-width: 32px;
   height: 32px;
+  padding: 0 9px;
   border-radius: var(--radius-sm);
   border: 1px solid var(--border);
   background: var(--card-bg);
@@ -468,6 +470,18 @@ tbody td.right {
   transition: all 0.15s;
   font-size: 13px;
   font-weight: 500;
+}
+
+.page-btn-text {
+  min-width: 82px;
+}
+
+.page-count {
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 500;
+  padding: 0 6px;
+  white-space: nowrap;
 }
 
 .page-btn:hover:not(:disabled) {
@@ -484,6 +498,12 @@ tbody td.right {
 .page-btn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+.page-btn.disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+  pointer-events: none;
 }
 
 .page-btn svg {

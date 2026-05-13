@@ -12,6 +12,12 @@ if (!isset($_SESSION['user_id'])) {
 $selectedDate = $_GET['date'] ?? date('Y-m-d');
 if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $selectedDate)) $selectedDate = date('Y-m-d');
 
+function pageUrl($pageParam, $page) {
+    $query = $_GET;
+    $query[$pageParam] = $page;
+    return '?' . htmlspecialchars(http_build_query($query), ENT_QUOTES, 'UTF-8');
+}
+
 // ========== EXPORT LOGIC (Must run before HTML/Headers) ==========
 if (isset($_GET['export'])) {
     
@@ -89,24 +95,46 @@ if ($search) {
     $where[] = "(CONCAT(s.first_name, ' ', s.last_name) LIKE ?)"; $params[] = "%$search%";
 }
 
+$studentsPerPage = 10;
+$page = max(1, (int)($_GET['page'] ?? 1));
+$fromSql = "FROM students s
+        LEFT JOIN feeding_logs fl ON s.id = fl.student_id AND fl.feeding_date = ?
+        INNER JOIN measurements m ON s.id = m.student_id AND m.type = 'baseline' AND m.nutritional_status = 'Underweight'
+        " . ($where ? "WHERE " . implode(' AND ', $where) : "");
+$countSql = "SELECT COUNT(*) " . $fromSql;
+$countStmt = $pdo->prepare($countSql);
+$countStmt->execute(array_merge([$selectedDate], $params));
+$totalStudents = (int)$countStmt->fetchColumn();
+$totalPages = max(1, (int)ceil($totalStudents / $studentsPerPage));
+$page = min($page, $totalPages);
+$offset = ($page - 1) * $studentsPerPage;
+
+$statsSql = "SELECT
+          COUNT(*) as total_students,
+          SUM(CASE WHEN fl.is_present = 1 THEN 1 ELSE 0 END) as present_students,
+          SUM(CASE WHEN fl.meal_served = 1 THEN 1 ELSE 0 END) as meals_served
+        " . $fromSql;
+$statsStmt = $pdo->prepare($statsSql);
+$statsStmt->execute(array_merge([$selectedDate], $params));
+$feedingStats = $statsStmt->fetch() ?: ['total_students' => 0, 'present_students' => 0, 'meals_served' => 0];
+
 $sql = "SELECT s.id, CONCAT(s.first_name, ' ', s.last_name) as name, s.grade_level, s.section,
                fl.is_present, fl.meal_served, fl.remarks
-        FROM students s
-        LEFT JOIN feeding_logs fl ON s.id = fl.student_id AND fl.feeding_date = ?
-        -- Join with baseline measurements to ensure only eligible students are fed
-        INNER JOIN measurements m ON s.id = m.student_id AND m.type = 'baseline' AND m.nutritional_status = 'Underweight'
-        " . ($where ? "WHERE " . implode(' AND ', $where) : "") . "
-        ORDER BY s.grade_level, s.section, s.last_name";
+        " . $fromSql . "
+        ORDER BY s.grade_level, s.section, s.last_name
+        LIMIT $studentsPerPage OFFSET $offset";
 $params = array_merge([$selectedDate], $params);
 
 $stmt = $pdo->prepare($sql); $stmt->execute($params);
 $students = $stmt->fetchAll();
+$studentsStart = $totalStudents > 0 ? $offset + 1 : 0;
+$studentsEnd = min($offset + count($students), $totalStudents);
 
 // Calculate stats
-$total = count($students);
-$present = count(array_filter($students, fn($s) => $s['is_present'] == 1));
+$total = (int)$feedingStats['total_students'];
+$present = (int)$feedingStats['present_students'];
 $absent = $total - $present;
-$meals = count(array_filter($students, fn($s) => $s['meal_served'] == 1));
+$meals = (int)$feedingStats['meals_served'];
 $rate = $total > 0 ? round(($present / $total) * 100) : 0;
 
 // Show toast if saved
@@ -289,10 +317,12 @@ $showToast = isset($_GET['saved']);
           <!-- Pagination (simplified for MVP) -->
           <div class="pagination">
             <div class="pagination-info">
-              Showing 1 to <?= count($students) ?> of <?= count($students) ?> entries
+              Showing <span><?= $studentsStart ?></span> to <span><?= $studentsEnd ?></span> of <span><?= $totalStudents ?></span> entries
             </div>
-            <div class="pagination-controls">
-              <button class="page-btn active">1</button>
+            <div class="pagination-controls" aria-label="Feeding log pagination">
+              <a class="page-btn page-btn-text <?= $page <= 1 ? 'disabled' : '' ?>" href="<?= $page <= 1 ? '#' : pageUrl('page', $page - 1) ?>">Previous</a>
+              <span class="page-count">Page <?= $page ?> of <?= $totalPages ?></span>
+              <a class="page-btn page-btn-text <?= $page >= $totalPages ? 'disabled' : '' ?>" href="<?= $page >= $totalPages ? '#' : pageUrl('page', $page + 1) ?>">Next</a>
             </div>
           </div>
           </form>

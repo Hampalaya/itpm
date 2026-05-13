@@ -87,6 +87,12 @@ function getBadgeClass($status)
   };
 }
 
+function pageUrl($pageParam, $page) {
+  $query = $_GET;
+  $query[$pageParam] = $page;
+  return '?' . htmlspecialchars(http_build_query($query), ENT_QUOTES, 'UTF-8');
+}
+
 // ========== HANDLE POST ACTIONS ==========
 $message = '';
 $messageType = '';
@@ -195,16 +201,29 @@ if (($_SESSION['role'] ?? '') === 'encoder' && !empty($_SESSION['assigned_sectio
   $params[] = $_SESSION['assigned_section'];
 }
 
-$sql = "SELECT m.*, s.first_name, s.last_name, s.grade_level, s.section, u.full_name as recorder_name
-        FROM measurements m
+$measurementsPerPage = 10;
+$page = max(1, (int)($_GET['page'] ?? 1));
+$baseFromSql = "FROM measurements m
         JOIN students s ON m.student_id = s.id
         LEFT JOIN users u ON m.recorded_by = u.id";
-if ($where) $sql .= " WHERE " . implode(' AND ', $where);
-$sql .= " ORDER BY m.measured_date DESC, s.last_name";
+$whereSql = $where ? " WHERE " . implode(' AND ', $where) : "";
+$countStmt = $pdo->prepare("SELECT COUNT(*) " . $baseFromSql . $whereSql);
+$countStmt->execute($params);
+$totalMeasurements = (int)$countStmt->fetchColumn();
+$totalPages = max(1, (int)ceil($totalMeasurements / $measurementsPerPage));
+$page = min($page, $totalPages);
+$offset = ($page - 1) * $measurementsPerPage;
+
+$sql = "SELECT m.*, s.first_name, s.last_name, s.grade_level, s.section, u.full_name as recorder_name
+        " . $baseFromSql . $whereSql . "
+        ORDER BY m.measured_date DESC, s.last_name
+        LIMIT $measurementsPerPage OFFSET $offset";
 
 $stmt = $pdo->prepare($sql);
 $stmt->execute($params);
 $measurements = $stmt->fetchAll();
+$measurementsStart = $totalMeasurements > 0 ? $offset + 1 : 0;
+$measurementsEnd = min($offset + count($measurements), $totalMeasurements);
 
 // Students for dropdown
 $studentWhere = [];
@@ -549,7 +568,7 @@ $monthly = max(0, $total - $baseline - $endline);
         </form>
       </div>
 
-      <p class="results-count">Showing <?= count($measurements) ?> measurement<?= count($measurements) !== 1 ? 's' : '' ?></p>
+      <p class="results-count">Showing <?= $measurementsStart ?> to <?= $measurementsEnd ?> of <?= $totalMeasurements ?> measurement<?= $totalMeasurements !== 1 ? 's' : '' ?></p>
 
       <div class="table-card">
         <div class="table-container">
@@ -623,6 +642,16 @@ $monthly = max(0, $total - $baseline - $endline);
               <?php endif; ?>
             </tbody>
           </table>
+        </div>
+        <div class="pagination">
+          <div class="pagination-info">
+            Showing <span><?= $measurementsStart ?></span> to <span><?= $measurementsEnd ?></span> of <span><?= $totalMeasurements ?></span> measurements
+          </div>
+          <div class="pagination-controls" aria-label="Measurement pagination">
+            <a class="page-btn page-btn-text <?= $page <= 1 ? 'disabled' : '' ?>" href="<?= $page <= 1 ? '#' : pageUrl('page', $page - 1) ?>">Previous</a>
+            <span class="page-count">Page <?= $page ?> of <?= $totalPages ?></span>
+            <a class="page-btn page-btn-text <?= $page >= $totalPages ? 'disabled' : '' ?>" href="<?= $page >= $totalPages ? '#' : pageUrl('page', $page + 1) ?>">Next</a>
+          </div>
         </div>
       </div>
     </main>

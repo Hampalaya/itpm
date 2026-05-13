@@ -8,7 +8,6 @@ if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'admin') {
     header('Location: index.php');
     exit;
 }
-
 // ========== HANDLE POST ACTIONS ==========
 $message = '';
 $messageType = '';
@@ -61,6 +60,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && in_array
     // Validate
     if (!$fullName || !$username || !in_array($role, ['admin','encoder'])) {
         $message = 'Fill all required fields with valid values.'; $messageType = 'error';
+    } elseif ($role === 'encoder' && $section === '') {
+      $message = 'Assigned section is required for encoder accounts.'; $messageType = 'error';
     } else {
         try {
             if ($_POST['action'] === 'add') {
@@ -485,9 +486,9 @@ try {
         </div>
         
         <div class="form-group">
-          <label class="form-label">Assigned Section <span style="color:#9ca3af;font-weight:400">(for encoders)</span></label>
+          <label class="form-label">Assigned Section <span style="color:#9ca3af;font-weight:400">(required for encoders)</span></label>
           <select class="form-select" id="inputSection" name="assigned_section">
-            <option value="">-- No Section (Full Access) --</option>
+            <option value="">-- Select Section --</option>
             <option value="A">Section A</option>
             <option value="B">Section B</option>
             <option value="C">Section C</option>
@@ -747,15 +748,22 @@ try {
     });
   }, 5000);
   
-  // Role-based section field hint
-  document.getElementById('inputRole')?.addEventListener('change', function() {
-    const sectionGroup = this.closest('.form-group').nextElementSibling;
-    if (this.value === 'encoder') {
-      sectionGroup.style.opacity = '1';
-    } else {
-      sectionGroup.style.opacity = '0.6';
+  // Role-based section requirement for form validation
+  function syncAssignedSectionRequired() {
+    const roleSelect = document.getElementById('inputRole');
+    const sectionInput = document.getElementById('inputSection');
+    const sectionGroup = roleSelect?.closest('.form-group')?.nextElementSibling;
+    if (!roleSelect || !sectionInput) return;
+
+    const required = roleSelect.value === 'encoder';
+    sectionInput.required = required;
+    if (sectionGroup) {
+      sectionGroup.style.opacity = required ? '1' : '0.6';
     }
-  });
+  }
+
+  document.getElementById('inputRole')?.addEventListener('change', syncAssignedSectionRequired);
+  syncAssignedSectionRequired();
   </script>
 </body>
 </html>

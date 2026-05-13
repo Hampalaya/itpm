@@ -163,19 +163,35 @@ foreach ($endlineRows as $row) {
     if (isset($endlineCounts[$row['nutritional_status']])) $endlineCounts[$row['nutritional_status']] = (int) $row['total'];
 }
 
-$trendRows = rowsValue(
+$trendDays = 14;
+$rawTrend = rowsValue(
     $pdo,
-    "SELECT DATE_FORMAT(m.measured_date, '%Y-%m') AS period,
-            DATE_FORMAT(m.measured_date, '%b %Y') AS label,
+    "SELECT DATE(m.measured_date) AS period,
+            DATE_FORMAT(m.measured_date, '%b %e') AS label,
             SUM(m.nutritional_status = 'Underweight') AS underweight
      FROM measurements m
      JOIN students s ON m.student_id = s.id
-     WHERE m.measured_date >= DATE_SUB(CURDATE(), INTERVAL 5 MONTH)
+     WHERE m.measured_date >= DATE_SUB(CURDATE(), INTERVAL ? DAY)
      $measurementAnd
-     GROUP BY period, label
+     GROUP BY period
      ORDER BY period",
-    $measurementParams
+    array_merge([$trendDays - 1], $measurementParams)
 );
+
+// Normalize into a full range of days so missing days show as 0
+$trendMap = [];
+foreach ($rawTrend as $r) {
+    $trendMap[$r['period']] = (int) $r['underweight'];
+}
+$trendRows = [];
+for ($i = $trendDays - 1; $i >= 0; $i--) {
+    $d = date('Y-m-d', strtotime("-{$i} days"));
+    $trendRows[] = [
+        'period' => $d,
+        'label' => date('M j', strtotime($d)),
+        'underweight' => $trendMap[$d] ?? 0,
+    ];
+}
 
 // Only fetch recent activities if the user is an admin
 $activityRows = [];

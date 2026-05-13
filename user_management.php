@@ -130,6 +130,24 @@ $users = $stmt->fetchAll();
 $currentUser = $pdo->prepare("SELECT full_name, role FROM users WHERE id = ?");
 $currentUser->execute([$_SESSION['user_id']]);
 $currentUser = $currentUser->fetch();
+
+// ========== FETCH AUDIT LOGS ==========
+$auditLogs = [];
+try {
+    $stmt = $pdo->prepare("
+        SELECT a.id, a.action, a.table_name, a.record_id, a.description, a.created_at, 
+               u.full_name as actor_name, u.role as actor_role
+        FROM audit_logs a
+        LEFT JOIN users u ON a.user_id = u.id
+        ORDER BY a.created_at DESC
+        LIMIT 50
+    ");
+    $stmt->execute();
+    $auditLogs = $stmt->fetchAll();
+} catch (PDOException $e) {
+    error_log('Audit log fetch failed: ' . $e->getMessage());
+}
+
 ?>
 <!doctype html>
 <html lang="en">
@@ -305,10 +323,87 @@ $currentUser = $currentUser->fetch();
           </table>
         </div>
       </div>
+      <!-- Audit Log Card -->
+    <div class="system-users-card" style="margin-top: 24px;">
+      <div class="card-title">
+        <div style="display:flex; align-items:center; gap:8px;">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:18px;height:18px;">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+            <polyline points="14 2 14 8 20 8"/>
+            <line x1="16" y1="13" x2="8" y2="13"/>
+            <line x1="16" y1="17" x2="8" y2="17"/>
+            <polyline points="10 9 9 9 8 9"/>
+          </svg>
+          Recent Activity Log
         </div>
-      </main>
+      </div>
+      
+      <div class="table-wrapper">
+        <table class="user-table">
+          <thead>
+            <tr>
+              <th>Time</th>
+              <th>User</th>
+              <th>Action</th>
+              <th>Table</th>
+              <th>Details</th>
+            </tr>
+          </thead>
+          <tbody>
+            <?php if (empty($auditLogs)): ?>
+              <tr><td colspan="5" style="text-align:center;padding:2rem;color:#6b7280">No activity logged yet.</td></tr>
+            <?php else: ?>
+              <?php foreach ($auditLogs as $log): ?>
+                <tr>
+                  <td style="font-size:12px;white-space:nowrap;">
+                    <div style="font-weight:500;color:#101828"><?= date('M j, Y', strtotime($log['created_at'])) ?></div>
+                    <div style="color:#6b7280"><?= date('g:i A', strtotime($log['created_at'])) ?></div>
+                  </td>
+                  <td>
+                    <div style="font-weight:500;color:#101828"><?= htmlspecialchars($log['actor_name'] ?? 'System') ?></div>
+                    <div style="font-size:11px;color:#6b7280"><?= htmlspecialchars(ucfirst($log['actor_role'] ?? '')) ?></div>
+                  </td>
+                  <td>
+                    <?php
+                      $actionColors = [
+                        'insert' => ['bg' => '#dcfce7', 'text' => '#166534', 'label' => 'Created'],
+                        'update' => ['bg' => '#fef3c7', 'text' => '#92400e', 'label' => 'Updated'],
+                        'delete' => ['bg' => '#fee2e2', 'text' => '#b91c1c', 'label' => 'Deleted'],
+                        'login'  => ['bg' => '#dbeafe', 'text' => '#1e40af', 'label' => 'Logged In'],
+                      ];
+                      $style = $actionColors[$log['action']] ?? ['bg' => '#f3f4f6', 'text' => '#6b7280', 'label' => ucfirst($log['action'])];
+                    ?>
+                    <span style="padding:4px 10px;border-radius:999px;font-size:11px;font-weight:600;background:<?= $style['bg'] ?>;color:<?= $style['text'] ?>">
+                      <?= $style['label'] ?>
+                    </span>
+                  </td>
+                  <td><code style="font-size:11px;background:#f9fafb;padding:2px 6px;border-radius:4px"><?= htmlspecialchars($log['table_name']) ?></code></td>
+                  <td style="max-width:300px;">
+                    <div style="font-size:13px;color:#374151;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
+                      <?= htmlspecialchars($log['description'] ?: '—') ?>
+                    </div>
+                    <?php if ($log['record_id']): ?>
+                      <div style="font-size:11px;color:#9ca3af;margin-top:2px">ID: <?= (int)$log['record_id'] ?></div>
+                    <?php endif; ?>
+                  </td>
+                </tr>
+              <?php endforeach; ?>
+            <?php endif; ?>
+          </tbody>
+        </table>
+      </div>
+      
+      <?php if (count($auditLogs) >= 50): ?>
+        <div style="padding:12px 22px;text-align:center;font-size:12px;color:#6b7280;border-top:1px solid #f3f4f6;">
+          Showing latest 50 entries • <a href="audit_logs.php" style="color:#00bc7d;text-decoration:none;font-weight:500">View all</a>
+        </div>
+      <?php endif; ?>
+      
     </div>
-  </div>
+    </div>
+  </main>
+</div>
+</div>
 
   <!-- Add/Edit Modal -->
   <div class="modal-overlay" id="userModal">

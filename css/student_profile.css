@@ -151,6 +151,15 @@ body {
   max-width: 1186px;
 }
 
+.search-form {
+  flex: 1;
+  min-width: 200px;
+}
+
+.search-form .search-wrapper {
+  max-width: none;
+}
+
 .search-wrapper svg {
   position: absolute;
   left: 12px;

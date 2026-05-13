@@ -142,30 +142,30 @@ $params = [];
 
 // Search: name, LRN
 if ($search) {
-  $where[] = "(CONCAT(first_name,' ',COALESCE(middle_name,''),' ',last_name) LIKE ? OR lrn LIKE ?)";
+  $where[] = "(CONCAT(s.first_name,' ',COALESCE(s.middle_name,''),' ',s.last_name) LIKE ? OR s.lrn LIKE ?)";
   $params = array_merge($params, ["%$search%", "%$search%"]);
 }
 // Filters
 if ($gradeFilter) {
-  $where[] = "grade_level = ?";
+  $where[] = "s.grade_level = ?";
   $params[] = $gradeFilter;
 }
 if ($sectionFilter) {
-  $where[] = "section = ?";
+  $where[] = "s.section = ?";
   $params[] = $sectionFilter;
 }
 if ($sexFilter) {
-  $where[] = "sex = ?";
+  $where[] = "s.sex = ?";
   $params[] = $sexFilter;
 }
 if ($schoolYearFilter) {
-  $where[] = "school_year = ?";
+  $where[] = "s.school_year = ?";
   $params[] = $schoolYearFilter;
 }
 
 // Role-based: encoder sees only their assigned_section when assigned.
 if (($_SESSION['role'] ?? '') === 'encoder' && !empty($_SESSION['assigned_section'])) {
-  $where[] = "section = ?";
+  $where[] = "s.section = ?";
   $params[] = $_SESSION['assigned_section'];
 }
 
@@ -231,6 +231,7 @@ $showAddModal = isset($_GET['add']) || (isset($_POST['action']) && $_POST['actio
   <link rel="stylesheet" href="css/student_profile.css?v=20260513" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
   <script src="js/sidebar.js" defer></script>
+  <script src="js/student_profile.js?v=20260514" defer></script>
 </head>
 
 <body>
@@ -284,30 +285,35 @@ $showAddModal = isset($_GET['add']) || (isset($_POST['action']) && $_POST['actio
 
         <!-- Search & Filters -->
         <div class="controls-bar">
-          <div class="search-wrapper">
-            <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-              <circle cx="11" cy="11" r="8" />
-              <line x1="21" y1="21" x2="16.65" y2="16.65" />
-            </svg>
-            <input type="text" id="liveSearch" class="search-input" placeholder="Search by name or LRN..." value="<?= htmlspecialchars($search) ?>" />
-          </div>
+          <form method="get" action="" id="searchForm" class="search-form">
+            <?php foreach (['grade_filter', 'section_filter', 'sex_filter', 'school_year_filter'] as $k): ?>
+              <?php if (!empty($_GET[$k])): ?><input type="hidden" name="<?= $k ?>" value="<?= htmlspecialchars($_GET[$k]) ?>"><?php endif; ?>
+            <?php endforeach; ?>
+            <div class="search-wrapper">
+              <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <circle cx="11" cy="11" r="8" />
+                <line x1="21" y1="21" x2="16.65" y2="16.65" />
+              </svg>
+              <input type="text" name="search" id="liveSearch" class="search-input" placeholder="Search by name or LRN..." value="<?= htmlspecialchars($search) ?>" autocomplete="off" />
+            </div>
+          </form>
           <button type="button" class="filter-btn" id="toggleFilters">
             <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
               <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3" />
             </svg>
-            Show Filters
+            <span id="filterButtonText"><?= ($gradeFilter || $sectionFilter || $sexFilter || $schoolYearFilter) ? 'Hide Filters' : 'Show Filters' ?></span>
           </button>
         </div>
 
         <!-- Filter Panel (hidden by default, toggled by JS) -->
-        <div class="filter-panel" id="filterPanel" style="display:none;">
-          <form method="get" action="" class="filter-form">
-            <input type="hidden" name="search" value="<?= htmlspecialchars($search) ?>">
+        <div class="filter-panel" id="filterPanel" style="<?= ($gradeFilter || $sectionFilter || $sexFilter || $schoolYearFilter) ? '' : 'display:none;' ?>">
+          <form method="get" action="" class="filter-form" id="filterForm">
+            <input type="hidden" name="search" id="filterSearch" value="<?= htmlspecialchars($search) ?>">
             <div class="filter-row">
               <select name="grade_filter" onchange="this.form.submit()">
                 <option value="">All Grades</option>
                 <?php for ($g = 1; $g <= 6; $g++): ?>
-                  <option value="<?= $g ?>" <?= $gradeFilter === $g ? 'selected' : '' ?>>Grade <?= $g ?></option>
+                  <option value="<?= $g ?>" <?= $gradeFilter === (string)$g ? 'selected' : '' ?>>Grade <?= $g ?></option>
                 <?php endfor; ?>
               </select>
               <select name="section_filter" onchange="this.form.submit()">

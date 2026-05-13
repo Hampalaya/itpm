@@ -1,90 +1,74 @@
-// Filter panel toggle
-document.getElementById('toggleFilters')?.addEventListener('click', function() {
-  const panel = document.getElementById('filterPanel');
-  if (panel.style.display === 'none') {
-    panel.style.display = 'block';
-    this.textContent = 'Hide Filters';
-  } else {
-    panel.style.display = 'none';
-    this.textContent = 'Show Filters';
-  }
-});
-
-// Modal close on overlay click
-document.getElementById('studentModal')?.addEventListener('click', function(e) {
-  if (e.target === this) {
-    window.location.href = 'student_profile.php';
-  }
-});
-
-// Auto-hide toast
-setTimeout(() => {
-  const t = document.getElementById('toast');
-  if (t) {
-    t.style.opacity = '0';
-    setTimeout(() => {
-      if (t.parentNode) t.parentNode.removeChild(t);
-    }, 300);
-  }
-}, 4000);
-
-/**
- * FEED System - Student Profiles Modal Interactions
- * Plain JS, no frameworks
- */
-
-// ===== LIVE SEARCH / REAL-TIME FILTERING =====
-function liveSearchTable() {
-  const searchInput = document.getElementById('liveSearch');
-  const table = document.querySelector('table tbody');
-  const rows = table.querySelectorAll('tbody tr');
-  const searchTerm = searchInput.value.toLowerCase().trim();
-
-  rows.forEach(row => {
-    // Skip the "no students found" row
-    if (row.textContent.includes('No students found')) {
-      row.style.display = '';
-      return;
-    }
-
-    // Get text content from LRN and Full Name columns
-    const lrnCell = row.cells[0]?.textContent.toLowerCase().trim() || '';
-    const nameCell = row.cells[1]?.textContent.toLowerCase().trim() || '';
-
-    // Show row if search term matches either LRN or name, or if search is empty
-    if (searchTerm === '' || lrnCell.includes(searchTerm) || nameCell.includes(searchTerm)) {
-      row.style.display = '';
-    } else {
-      row.style.display = 'none';
-    }
-  });
-}
-
-// Attach live search listener
-document.addEventListener('DOMContentLoaded', function() {
-  const searchInput = document.getElementById('liveSearch');
-  if (searchInput) {
-    searchInput.addEventListener('input', liveSearchTable);
-    // Initial filter on page load if there's a search term
-    liveSearchTable();
-  }
-});
-
 document.addEventListener('DOMContentLoaded', function() {
   const modal = document.getElementById('studentModal');
   const addBtn = document.querySelector('.header-actions .btn-primary');
   const cancelBtn = modal?.querySelector('.btn-cancel');
   const form = modal?.querySelector('form');
   const toast = document.getElementById('toast');
+  const searchInput = document.getElementById('liveSearch');
+  const searchForm = document.getElementById('searchForm');
+  const filterSearch = document.getElementById('filterSearch');
+  const toggleFiltersBtn = document.getElementById('toggleFilters');
+  const filterButtonText = document.getElementById('filterButtonText');
+  const filterPanel = document.getElementById('filterPanel');
+  let searchTimer = null;
 
-  // ===== OPEN MODAL =====
-  // Via "Add Student" button click
+  function liveSearchTable() {
+    const rows = document.querySelectorAll('table tbody tr');
+    const searchTerm = (searchInput?.value || '').toLowerCase().trim();
+
+    rows.forEach(row => {
+      if (row.textContent.includes('No students found')) {
+        row.style.display = '';
+        return;
+      }
+
+      const lrnCell = row.cells[0]?.textContent.toLowerCase().trim() || '';
+      const nameCell = row.cells[1]?.textContent.toLowerCase().trim() || '';
+      row.style.display = !searchTerm || lrnCell.includes(searchTerm) || nameCell.includes(searchTerm) ? '' : 'none';
+    });
+  }
+
+  function submitSearch() {
+    if (!searchForm) return;
+    if (filterSearch) {
+      filterSearch.value = searchInput?.value || '';
+    }
+    searchForm.submit();
+  }
+
+  searchInput?.addEventListener('input', function() {
+    if (filterSearch) {
+      filterSearch.value = this.value;
+    }
+    liveSearchTable();
+    clearTimeout(searchTimer);
+    searchTimer = setTimeout(submitSearch, 450);
+  });
+
+  searchInput?.addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      clearTimeout(searchTimer);
+      submitSearch();
+    }
+  });
+
+  liveSearchTable();
+
+  toggleFiltersBtn?.addEventListener('click', function() {
+    if (!filterPanel) return;
+    const isHidden = filterPanel.style.display === 'none' || !filterPanel.style.display;
+    filterPanel.style.display = isHidden ? 'block' : 'none';
+    if (filterButtonText) {
+      filterButtonText.textContent = isHidden ? 'Hide Filters' : 'Show Filters';
+    }
+  });
+
   addBtn?.addEventListener('click', function(e) {
     e.preventDefault();
     openModal();
   });
 
-  // Via URL param ?add=1 (PHP already handles this, but JS ensures display)
   if (new URLSearchParams(window.location.search).has('add')) {
     openModal();
   }
@@ -92,50 +76,40 @@ document.addEventListener('DOMContentLoaded', function() {
   function openModal() {
     if (!modal) return;
     modal.style.display = 'flex';
-    // Trigger reflow for animation
     void modal.offsetWidth;
     modal.classList.add('active');
-    // Focus first input
-    const firstInput = modal.querySelector('input:not([type="hidden"])');
-    firstInput?.focus();
+    modal.querySelector('input:not([type="hidden"])')?.focus();
   }
 
-  // ===== CLOSE MODAL =====
   function closeModal() {
     if (!modal) return;
     modal.classList.remove('active');
-    // Wait for transition, then hide
     setTimeout(() => {
       modal.style.display = 'none';
     }, 200);
-    // Clean URL without reload
+
     const url = new URL(window.location);
     url.searchParams.delete('add');
     url.searchParams.delete('edit');
     window.history.replaceState({}, '', url);
   }
 
-  // Close on overlay click
   modal?.addEventListener('click', function(e) {
     if (e.target === modal) closeModal();
   });
 
-  // Close on Cancel button
   cancelBtn?.addEventListener('click', function(e) {
     e.preventDefault();
     closeModal();
   });
 
-  // Close on Escape key
   document.addEventListener('keydown', function(e) {
-    if (e.key === 'Escape' && modal?.style.display === 'flex') {
+    if (e.key === 'Escape' && modal?.classList.contains('active')) {
       closeModal();
     }
   });
 
-  // ===== FORM SUBMISSION FEEDBACK =====
   form?.addEventListener('submit', function() {
-    // Disable button to prevent double-submit
     const submitBtn = form.querySelector('button[type="submit"]');
     if (submitBtn) {
       submitBtn.disabled = true;
@@ -143,28 +117,16 @@ document.addEventListener('DOMContentLoaded', function() {
     }
   });
 
-  // ===== TOAST AUTO-HIDE =====
   if (toast) {
     setTimeout(() => {
-      toast.style.animation = 'toastSlideIn 0.3s ease reverse';
+      toast.style.opacity = '0';
       setTimeout(() => {
-        toast.style.display = 'none';
+        if (toast.parentNode) toast.parentNode.removeChild(toast);
       }, 300);
     }, 4000);
-    // Manual close
+
     toast.querySelector('button')?.addEventListener('click', function() {
       toast.style.display = 'none';
     });
   }
-
-  // ===== FILTER PANEL TOGGLE (Bonus, since you have the button) =====
-  const toggleFiltersBtn = document.getElementById('toggleFilters');
-  const filterPanel = document.getElementById('filterPanel');
-  
-  toggleFiltersBtn?.addEventListener('click', function() {
-    if (!filterPanel) return;
-    const isHidden = filterPanel.style.display === 'none' || !filterPanel.style.display;
-    filterPanel.style.display = isHidden ? 'block' : 'none';
-    this.textContent = isHidden ? 'Hide Filters' : 'Show Filters';
-  });
 });

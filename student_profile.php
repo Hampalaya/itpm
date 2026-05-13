@@ -108,7 +108,7 @@ if (isset($_GET['export'])) {
   
   foreach ($exportStudents as $s) {
     fputcsv($out, [
-      $s['lrn'], 
+      "=\"{$s['lrn']}\"", 
       $s['first_name'], 
       $s['middle_name'], 
       $s['last_name'], 
@@ -545,31 +545,6 @@ $showAddModal = isset($_GET['add']) || (isset($_POST['action']) && $_POST['actio
   </div>
   </div>
 
-  <!-- CSV Export Logic (runs if ?export=1) -->
-  <?php if (isset($_GET['export'])):
-    header('Content-Type: text/csv');
-    header('Content-Disposition: attachment; filename="students_' . date('Y-m-d') . '.csv"');
-    $out = fopen('php://output', 'w');
-    fputcsv($out, ['LRN', 'First Name', 'Middle Name', 'Last Name', 'Grade', 'Section', 'Age', 'Sex', 'School Year']);
-    foreach ($students as $s) {
-      fputcsv($out, [
-        $s['lrn'],
-        $s['first_name'],
-        $s['middle_name'],
-        $s['last_name'],
-        $s['grade_level'],
-        $s['section'],
-        $s['age'],
-        $s['sex'],
-        $s['school_year']
-      ]);
-    }
-    fclose($out);
-    exit;
-  endif; ?>
 
-  <!-- JS for Filters + Modal + Toast -->
-  <script src="js/student_profile.js"></script>
-</body>
 
 </html>

@@ -22,6 +22,14 @@ function usersAssignedGradeColumnExists(PDO $pdo): bool {
 }
 
 $hasAssignedGradeColumn = usersAssignedGradeColumnExists($pdo);
+if (!$hasAssignedGradeColumn) {
+    try {
+        $pdo->exec("ALTER TABLE users ADD COLUMN assigned_grade TINYINT NULL AFTER assigned_section");
+        $hasAssignedGradeColumn = true;
+    } catch (PDOException $e) {
+        error_log('Unable to add users.assigned_grade column: ' . $e->getMessage());
+    }
+}
 
 // TOGGLE User Status
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && in_array($_POST['action'], ['activate', 'deactivate'])) {

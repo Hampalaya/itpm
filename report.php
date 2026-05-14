@@ -140,7 +140,7 @@ if (isset($_GET['export']) || isset($_POST['generate'])) {
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <link rel="icon" type="image/png" href="images/logo_feed.png?v=1">
+  <link rel="icon" type="image/png" href="images/logo_feed.png?v=<?= time() ?>">
   <title>FEED System - Reports</title>
   <link rel="stylesheet" href="css/report.css?v=<?= time() ?>" />
   <link rel="stylesheet" href="css/sidebar.css?v=20260515" />
@@ -273,10 +273,6 @@ if (isset($_GET['export']) || isset($_POST['generate'])) {
               <button type="submit" name="generate" class="btn btn-primary" id="generateBtn">
                 <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
                 Generate & Download
-              </button>
-              <button type="button" class="btn btn-secondary" id="exportPdfBtn" onclick="window.print()">
-                <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-                Print as PDF
               </button>
               <button type="button" class="btn btn-secondary" id="exportExcelBtn" onclick="document.getElementById('generateBtn').click()">
                 <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>

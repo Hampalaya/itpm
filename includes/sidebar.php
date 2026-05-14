@@ -26,7 +26,7 @@ $currentPage = basename($_SERVER['PHP_SELF'], '.php');
   <div class="sidebar-header">
     <div class="header-left" style="gap: 8px;">
       <div class="header-icon" style="background: transparent; box-shadow: none; border-radius: 0; width: 44px; height: 44px;">
-        <img src="images/logo_feed.png" alt="Logo" style="width: 100%; height: 100%; object-fit: contain;">
+        <img src="images/logo_feed.png?v=<?= time() ?>" alt="Logo" style="width: 100%; height: 100%; object-fit: contain;">
       </div>
       <div class="header-text">
         <h2>FEED</h2>

@@ -23,23 +23,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $user = $stmt->fetch();
 
             if ($user && password_verify($password, $user['password_hash'])) {
-              if (($user['role'] ?? '') === 'encoder' && empty($user['assigned_section'])) {
-                $error = 'This encoder account has no assigned section. Please contact admin.';
+              try {
+                $gstmt = $pdo->prepare("SELECT assigned_grade FROM users WHERE id = ?");
+                $gstmt->execute([$user['id']]);
+                $assignedGrade = $gstmt->fetchColumn();
+                $assignedGrade = $assignedGrade !== false ? $assignedGrade : null;
+              } catch (PDOException $e) {
+                $assignedGrade = null;
+              }
+
+              if (($user['role'] ?? '') === 'encoder' && (empty($user['assigned_section']) || empty($assignedGrade))) {
+                $error = 'This encoder account needs both an assigned grade and section. Please contact admin.';
               } else {
                 session_regenerate_id(true);
                 $_SESSION['user_id'] = $user['id'];
                 $_SESSION['username'] = $user['username'];
                 $_SESSION['role'] = $user['role'];
                 $_SESSION['assigned_section'] = $user['assigned_section'];
-                // Try to populate assigned_grade if the column exists; fail gracefully if not
-                try {
-                  $gstmt = $pdo->prepare("SELECT assigned_grade FROM users WHERE id = ?");
-                  $gstmt->execute([$user['id']]);
-                  $g = $gstmt->fetchColumn();
-                  $_SESSION['assigned_grade'] = $g !== false ? $g : null;
-                } catch (PDOException $e) {
-                  $_SESSION['assigned_grade'] = null;
-                }
+                $_SESSION['assigned_grade'] = $assignedGrade;
 
                 logAudit($pdo, 'login', 'users', $user['id'], 'Successful login');
                 header('Location: dashboard.php');

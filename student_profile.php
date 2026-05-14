@@ -27,6 +27,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && in_array
   $sex = $_POST['sex'] ?? '';
   $schoolYear = trim($_POST['school_year'] ?? '2025-2026');
 
+  if (($_SESSION['role'] ?? '') === 'encoder') {
+    $section = $_SESSION['assigned_section'];
+    $grade = (int)$_SESSION['assigned_grade'];
+  }
+
   if (!$lrn || !$first || !$last || !$grade || !$section || !$age || !$sex) {
     $message = 'Fill all required fields.';
     $messageType = 'error';
@@ -46,11 +51,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && in_array
       }
     } else {
       $id = (int)($_POST['id'] ?? 0);
-      $stmt = $pdo->prepare("UPDATE students SET lrn=?,first_name=?,middle_name=?,last_name=?,grade_level=?,section=?,age=?,sex=?,school_year=? WHERE id=?");
-      $stmt->execute([$lrn, $first, $middle, $last, $grade, $section, $age, $sex, $schoolYear, $id]);
-      logAudit($pdo, 'update', 'students', $id, "Updated: $first $last");
-      $message = 'Student updated.';
-      $messageType = 'success';
+      if (!canAccessStudent($pdo, $id)) {
+        $message = 'You are not allowed to edit this student.';
+        $messageType = 'error';
+      } else {
+        $stmt = $pdo->prepare("UPDATE students SET lrn=?,first_name=?,middle_name=?,last_name=?,grade_level=?,section=?,age=?,sex=?,school_year=? WHERE id=?");
+        $stmt->execute([$lrn, $first, $middle, $last, $grade, $section, $age, $sex, $schoolYear, $id]);
+        logAudit($pdo, 'update', 'students', $id, "Updated: $first $last");
+        $message = 'Student updated.';
+        $messageType = 'success';
+      }
     }
   }
 }
@@ -86,16 +96,7 @@ if (isset($_GET['export'])) {
     $where[] = "school_year = ?";
     $params[] = $schoolYearFilter;
   }
-  if (($_SESSION['role'] ?? '') === 'encoder' && !empty($_SESSION['assigned_section'])) {
-    if (!empty($_SESSION['assigned_grade'])) {
-      $where[] = "section = ? AND grade_level = ?";
-      $params[] = $_SESSION['assigned_section'];
-      $params[] = $_SESSION['assigned_grade'];
-    } else {
-      $where[] = "section = ?";
-      $params[] = $_SESSION['assigned_section'];
-    }
-  }
+  addEncoderStudentScope($where, $params, '');
 
   $sql = "SELECT lrn, first_name, middle_name, last_name, grade_level, section, age, sex, school_year, created_at FROM students";
   if ($where) $sql .= " WHERE " . implode(' AND ', $where);
@@ -169,17 +170,8 @@ if ($schoolYearFilter) {
   $params[] = $schoolYearFilter;
 }
 
-// Role-based: encoder sees only their assigned_section (and grade, if set) when assigned.
-if (($_SESSION['role'] ?? '') === 'encoder' && !empty($_SESSION['assigned_section'])) {
-  if (!empty($_SESSION['assigned_grade'])) {
-    $where[] = "s.section = ? AND s.grade_level = ?";
-    $params[] = $_SESSION['assigned_section'];
-    $params[] = $_SESSION['assigned_grade'];
-  } else {
-    $where[] = "s.section = ?";
-    $params[] = $_SESSION['assigned_section'];
-  }
-}
+// Role-based: encoders see only their assigned grade and section.
+addEncoderStudentScope($where, $params);
 
 $studentsPerPage = 10;
 $page = max(1, (int)($_GET['page'] ?? 1));
@@ -221,8 +213,9 @@ function isLrnIssue($pdo, $lrn, $studentId) {
 $edit = null;
 $hasLrnIssue = false;
 if (isset($_GET['edit'])) {
-  $stmt = $pdo->prepare("SELECT * FROM students WHERE id = ?");
-  $stmt->execute([(int)$_GET['edit']]);
+  $editParams = [(int)$_GET['edit']];
+  $stmt = $pdo->prepare("SELECT * FROM students s WHERE s.id = ?" . encoderStudentScopeSql('s', $editParams));
+  $stmt->execute($editParams);
   $edit = $stmt->fetch();
   if ($edit) {
       $hasLrnIssue = isLrnIssue($pdo, $edit['lrn'], $edit['id']);

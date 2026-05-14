@@ -12,6 +12,17 @@ if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'admin') {
 $message = '';
 $messageType = '';
 
+function usersAssignedGradeColumnExists(PDO $pdo): bool {
+    try {
+        $pdo->query("SELECT assigned_grade FROM users LIMIT 1");
+        return true;
+    } catch (PDOException $e) {
+        return false;
+    }
+}
+
+$hasAssignedGradeColumn = usersAssignedGradeColumnExists($pdo);
+
 // TOGGLE User Status
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && in_array($_POST['action'], ['activate', 'deactivate'])) {
     $userId = (int)($_POST['user_id'] ?? 0);
@@ -63,6 +74,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && in_array
         $message = 'Fill all required fields with valid values.'; $messageType = 'error';
     } elseif ($role === 'encoder' && $section === '') {
       $message = 'Assigned section is required for encoder accounts.'; $messageType = 'error';
+    } elseif ($role === 'encoder' && $assigned_grade === '') {
+      $message = 'Assigned grade is required for encoder accounts.'; $messageType = 'error';
+    } elseif ($role === 'encoder' && !$hasAssignedGradeColumn) {
+      $message = 'The users table is missing assigned_grade. Please add that column before creating encoder accounts.'; $messageType = 'error';
     } else {
         try {
             if ($_POST['action'] === 'add') {
@@ -81,8 +96,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && in_array
                         
                         $stmt = $pdo->prepare("INSERT INTO users (username, password_hash, role, full_name, assigned_section, is_active) VALUES (?, ?, ?, ?, ?, ?)");
                         $stmt->execute([$username, $hash, $role, $fullName, $role === 'encoder' && $section ? $section : null, $isActive]);
-                        // Save assigned_grade if provided (DB may not have this column yet)
-                        if ($role === 'encoder' && $assigned_grade !== '') {
+                        // Save the required encoder grade separately for older schemas that added it later.
+                        if ($role === 'encoder') {
                           try {
                             $lastId = $pdo->lastInsertId();
                             $gstmt = $pdo->prepare("UPDATE users SET assigned_grade = ? WHERE id = ?");
@@ -114,10 +129,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && in_array
                 } else {
                     $stmt = $pdo->prepare("UPDATE users SET full_name=?, role=?, assigned_section=?, is_active=? WHERE id=?");
                     $stmt->execute([$fullName, $role, $role === 'encoder' && $section ? $section : null, $isActive, $userId]);
-                    // Update assigned_grade if provided (safe if column missing)
+                    // Clear assigned_grade for admins; require and save it for encoders.
                     try {
                       $gstmt = $pdo->prepare("UPDATE users SET assigned_grade = ? WHERE id = ?");
-                      $gstmt->execute([$assigned_grade !== '' ? $assigned_grade : null, $userId]);
+                      $gstmt->execute([$role === 'encoder' ? $assigned_grade : null, $userId]);
                     } catch (PDOException $e) {
                       // ignore
                     }
@@ -162,8 +177,8 @@ if ($where) $sql .= $userWhereSql;
 $sql .= " ORDER BY full_name LIMIT $usersPerPage OFFSET $usersOffset";
 $stmt = $pdo->prepare($sql); $stmt->execute($params);
 $users = $stmt->fetchAll();
-// Try to enrich users with assigned_grade if the column exists (fail gracefully)
-try {
+// Try to enrich users with assigned_grade if the column exists.
+if ($hasAssignedGradeColumn) {
   if (!empty($users)) {
     $ids = array_column($users, 'id');
     $placeholders = implode(',', array_fill(0, count($ids), '?'));
@@ -175,8 +190,6 @@ try {
     foreach ($users as &$uu) $uu['assigned_grade'] = $gradeMap[$uu['id']] ?? null;
     unset($uu);
   }
-} catch (PDOException $e) {
-  // ignore if column missing
 }
 $usersStart = $totalUsers > 0 ? $usersOffset + 1 : 0;
 $usersEnd = min($usersOffset + count($users), $totalUsers);
@@ -342,6 +355,7 @@ try {
                 <th>Username</th>
                 <th>Role</th>
                 <th>Section</th>
+                <th>Grade</th>
                 <th>Status</th>
                 <th>Last Active</th>
                 <th>Actions</th>
@@ -349,7 +363,7 @@ try {
             </thead>
             <tbody id="userTableBody">
               <?php if (empty($users)): ?>
-                <tr><td colspan="7" style="text-align:center;padding:2rem;color:#6b7a8d">No users found.</td></tr>
+                <tr><td colspan="8" style="text-align:center;padding:2rem;color:#6b7a8d">No users found.</td></tr>
               <?php else: ?>
                 <?php foreach ($users as $u):
                   $userJson = htmlspecialchars(json_encode($u, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP), ENT_QUOTES, 'UTF-8');
@@ -368,6 +382,7 @@ try {
                   <td><?= htmlspecialchars($u['username']) ?></td>
                   <td><span style="padding:4px 10px;border-radius:999px;font-size:11px;font-weight:600;background:#f3f4f6;color:#6b7280"><?= ucfirst($u['role']) ?></span></td>
                   <td><?= htmlspecialchars($u['assigned_section'] ?? '—') ?></td>
+                  <td><?= ($u['role'] ?? '') === 'encoder' ? htmlspecialchars($u['assigned_grade'] ?? 'Unassigned') : '&mdash;' ?></td>
                   <td><span class="status-badge <?= $u['is_active']?'status-active':'status-inactive' ?>"><?= $u['is_active']?'Active':'Inactive' ?></span></td>
                   <td>
                     <?php if ($u['last_active']): ?>
@@ -540,9 +555,9 @@ try {
         </div>
         
         <div class="form-group">
-          <label class="form-label">Assigned Grade <span style="color:#9ca3af;font-weight:400">(optional; leave blank for all grades in section)</span></label>
+          <label class="form-label">Assigned Grade <span style="color:#9ca3af;font-weight:400">(required for encoders)</span></label>
           <select class="form-select" id="inputGrade" name="assigned_grade">
-            <option value="">-- All Grades --</option>
+            <option value="">-- Select Grade --</option>
             <?php for ($g = 1; $g <= 6; $g++): ?>
               <option value="<?= $g ?>">Grade <?= $g ?></option>
             <?php endfor; ?>
@@ -802,17 +817,23 @@ try {
     });
   }, 5000);
   
-  // Role-based section requirement for form validation
+  // Role-based scope requirement for form validation
   function syncAssignedSectionRequired() {
     const roleSelect = document.getElementById('inputRole');
     const sectionInput = document.getElementById('inputSection');
+    const gradeInput = document.getElementById('inputGrade');
     const sectionGroup = roleSelect?.closest('.form-group')?.nextElementSibling;
-    if (!roleSelect || !sectionInput) return;
+    const gradeGroup = sectionGroup?.nextElementSibling;
+    if (!roleSelect || !sectionInput || !gradeInput) return;
 
     const required = roleSelect.value === 'encoder';
     sectionInput.required = required;
+    gradeInput.required = required;
     if (sectionGroup) {
       sectionGroup.style.opacity = required ? '1' : '0.6';
+    }
+    if (gradeGroup) {
+      gradeGroup.style.opacity = required ? '1' : '0.6';
     }
   }
 

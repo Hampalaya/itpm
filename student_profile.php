@@ -223,6 +223,9 @@ if (isset($_GET['edit'])) {
 }
 // For Add modal trigger
 $showAddModal = isset($_GET['add']) || (isset($_POST['action']) && $_POST['action'] === 'add' && $messageType === 'error');
+$isEncoder = ($_SESSION['role'] ?? '') === 'encoder';
+$assignedGrade = $isEncoder ? (int)($_SESSION['assigned_grade'] ?? 0) : null;
+$assignedSection = $isEncoder ? (string)($_SESSION['assigned_section'] ?? '') : null;
 ?>
 <!doctype html>
 <html lang="en">
@@ -547,23 +550,39 @@ $showAddModal = isset($_GET['add']) || (isset($_POST['action']) && $_POST['actio
         <div class="form-row">
           <div class="form-group">
             <label>Grade Level *</label>
-            <select name="grade_level" required class="form-input">
-              <option value="">Select</option>
-              <?php for ($g = 1; $g <= 6; $g++): ?>
-                <option value="<?= $g ?>" <?= (isset($edit['grade_level']) && $edit['grade_level'] == $g) ? 'selected' : '' ?>>Grade <?= $g ?></option>
-              <?php endfor; ?>
+            <select name="grade_level" required class="form-input" <?= $isEncoder ? 'disabled' : '' ?>>
+              <?php if ($isEncoder): ?>
+                <option value="<?= $assignedGrade ?>" selected>Grade <?= $assignedGrade ?></option>
+              <?php else: ?>
+                <option value="">Select</option>
+                <?php for ($g = 1; $g <= 6; $g++): ?>
+                  <option value="<?= $g ?>" <?= (isset($edit['grade_level']) && $edit['grade_level'] == $g) ? 'selected' : '' ?>>Grade <?= $g ?></option>
+                <?php endfor; ?>
+              <?php endif; ?>
             </select>
+            <?php if ($isEncoder): ?>
+              <input type="hidden" name="grade_level" value="<?= $assignedGrade ?>">
+              <small class="field-hint">Fixed to your assigned grade.</small>
+            <?php endif; ?>
           </div>
           <div class="form-group">
             <label>Section *</label>
-            <select name="section" required class="form-input">
-              <option value="">Select Section</option>
-              <option value="A" <?= (isset($edit['section']) && $edit['section'] === 'A') ? 'selected' : '' ?>>Section A</option>
-              <option value="B" <?= (isset($edit['section']) && $edit['section'] === 'B') ? 'selected' : '' ?>>Section B</option>
-              <option value="C" <?= (isset($edit['section']) && $edit['section'] === 'C') ? 'selected' : '' ?>>Section C</option>
-              <option value="D" <?= (isset($edit['section']) && $edit['section'] === 'D') ? 'selected' : '' ?>>Section D</option>
-              <option value="E" <?= (isset($edit['section']) && $edit['section'] === 'E') ? 'selected' : '' ?>>Section E</option>
+            <select name="section" required class="form-input" <?= $isEncoder ? 'disabled' : '' ?>>
+              <?php if ($isEncoder): ?>
+                <option value="<?= htmlspecialchars($assignedSection) ?>" selected>Section <?= htmlspecialchars($assignedSection) ?></option>
+              <?php else: ?>
+                <option value="">Select Section</option>
+                <option value="A" <?= (isset($edit['section']) && $edit['section'] === 'A') ? 'selected' : '' ?>>Section A</option>
+                <option value="B" <?= (isset($edit['section']) && $edit['section'] === 'B') ? 'selected' : '' ?>>Section B</option>
+                <option value="C" <?= (isset($edit['section']) && $edit['section'] === 'C') ? 'selected' : '' ?>>Section C</option>
+                <option value="D" <?= (isset($edit['section']) && $edit['section'] === 'D') ? 'selected' : '' ?>>Section D</option>
+                <option value="E" <?= (isset($edit['section']) && $edit['section'] === 'E') ? 'selected' : '' ?>>Section E</option>
+              <?php endif; ?>
             </select>
+            <?php if ($isEncoder): ?>
+              <input type="hidden" name="section" value="<?= htmlspecialchars($assignedSection) ?>">
+              <small class="field-hint">Fixed to your assigned section.</small>
+            <?php endif; ?>
           </div>
           <div class="form-group">
             <label>Age *</label>

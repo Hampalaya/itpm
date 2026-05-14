@@ -249,16 +249,18 @@ try {
     .system-users-card { padding:24px 40px; }
     .card-title { font-size:18px; font-weight:600; color:#101828; margin-bottom:16px; }
     .table-wrapper { overflow-x:auto; background:#fff; border-radius:12px; box-shadow:0 1px 3px rgba(0,0,0,0.1); }
-    .user-table { width:100%; border-collapse:collapse; min-width:800px; }
+    .user-table { width:100%; border-collapse:collapse; min-width:980px; }
     .user-table th { padding:12px 16px; text-align:left; font-size:13px; font-weight:600; color:#6b7280; background:#f9fafb; border-bottom:1px solid #e5e7eb; }
     .user-table td { padding:12px 16px; font-size:14px; border-bottom:1px solid #f3f4f6; }
     .user-table tr:hover { background:#f9fafb; }
+    .user-table th:last-child, .user-table td:last-child { min-width:260px; width:260px; }
     
     .status-badge { padding:4px 10px; border-radius:999px; font-size:11px; font-weight:600; }
     .status-active { background:#dcfce7; color:#166534; }
     .status-inactive { background:#f3f4f6; color:#6b7280; }
     
-    .action-btn { padding:6px 12px; border-radius:6px; font-size:12px; border:1px solid #e5e7eb; background:#fff; cursor:pointer; margin-right:4px; }
+    .user-action-row { display:flex; align-items:center; gap:6px; flex-wrap:nowrap; white-space:nowrap; }
+    .action-btn { display:inline-flex; align-items:center; justify-content:center; min-height:32px; padding:6px 12px; border-radius:6px; font-size:12px; line-height:1; border:1px solid #e5e7eb; background:#fff; cursor:pointer; margin-right:0; white-space:nowrap; flex:0 0 auto; }
     .action-btn.edit { color:#101828; }
     .action-btn.delete { color:#e7000b; }
     
@@ -374,15 +376,17 @@ try {
                     <?php endif; ?>
                   </td>
                   <td>
-                    <button type="button" class="action-btn edit js-edit-user" data-user="<?= $userJson ?>">Edit</button>
-                    <?php if ($u['id'] !== $_SESSION['user_id']): ?>
-                      <button type="button" class="action-btn edit js-reset-pass" data-user-id="<?= (int)$u['id'] ?>" data-user-name="<?= $userNameAttr ?>" style="color:#f59e0b; border-color:#f59e0b;">Reset Pass</button>
-                      <?php if ($u['is_active']): ?>
-                        <button type="button" class="action-btn delete js-toggle-user" data-user-id="<?= (int)$u['id'] ?>" data-user-name="<?= $userNameAttr ?>" data-action="deactivate">Deactivate</button>
-                      <?php else: ?>
-                        <button type="button" class="action-btn js-toggle-user" style="color:#00bc7d; border-color:#e5e7eb" data-user-id="<?= (int)$u['id'] ?>" data-user-name="<?= $userNameAttr ?>" data-action="activate">Activate</button>
+                    <div class="user-action-row">
+                      <button type="button" class="action-btn edit js-edit-user" data-user="<?= $userJson ?>">Edit</button>
+                      <?php if ($u['id'] !== $_SESSION['user_id']): ?>
+                        <button type="button" class="action-btn edit js-reset-pass" data-user-id="<?= (int)$u['id'] ?>" data-user-name="<?= $userNameAttr ?>" style="color:#f59e0b; border-color:#f59e0b;">Reset Pass</button>
+                        <?php if ($u['is_active']): ?>
+                          <button type="button" class="action-btn delete js-toggle-user" data-user-id="<?= (int)$u['id'] ?>" data-user-name="<?= $userNameAttr ?>" data-action="deactivate">Deactivate</button>
+                        <?php else: ?>
+                          <button type="button" class="action-btn js-toggle-user" style="color:#00bc7d; border-color:#e5e7eb" data-user-id="<?= (int)$u['id'] ?>" data-user-name="<?= $userNameAttr ?>" data-action="activate">Activate</button>
+                        <?php endif; ?>
                       <?php endif; ?>
-                    <?php endif; ?>
+                    </div>
                   </td>
                 </tr>
                 <?php endforeach; ?>

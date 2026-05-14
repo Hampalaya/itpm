@@ -106,6 +106,15 @@ if (isset($_SESSION['user_id'])) {
         exit;
     }
 
+    if (
+        ($currentUser['role'] ?? null) === 'encoder'
+        && (empty($currentUser['assigned_section']) || empty($currentUser['assigned_grade']))
+    ) {
+        session_destroy();
+        header('Location: index.php');
+        exit;
+    }
+
     $_SESSION['role'] = $currentUser['role'] ?? $_SESSION['role'] ?? null;
     $_SESSION['assigned_section'] = $currentUser['assigned_section'] ?? null;
     $_SESSION['assigned_grade'] = $currentUser['assigned_grade'] ?? null;

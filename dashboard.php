@@ -54,20 +54,20 @@ function timeAgo(?string $dateTime): string {
     return date('M j, Y', $timestamp);
 }
 
-$roleRestricted = ($_SESSION['role'] ?? '') === 'encoder' && !empty($_SESSION['assigned_section']);
+$roleRestricted = ($_SESSION['role'] ?? '') === 'encoder';
 if ($roleRestricted) {
-  if (!empty($_SESSION['assigned_grade'])) {
+  if (!empty($_SESSION['assigned_section']) && !empty($_SESSION['assigned_grade'])) {
     $studentWhere = 'WHERE s.section = ? AND s.grade_level = ?';
     $studentParams = [$_SESSION['assigned_section'], $_SESSION['assigned_grade']];
     $measurementWhere = 'WHERE s.section = ? AND s.grade_level = ?';
     $measurementParams = $studentParams;
     $measurementAnd = 'AND s.section = ? AND s.grade_level = ?';
   } else {
-    $studentWhere = 'WHERE s.section = ?';
-    $studentParams = [$_SESSION['assigned_section']];
-    $measurementWhere = 'WHERE s.section = ?';
-    $measurementParams = $studentParams;
-    $measurementAnd = 'AND s.section = ?';
+    $studentWhere = 'WHERE 1=0';
+    $studentParams = [];
+    $measurementWhere = 'WHERE 1=0';
+    $measurementParams = [];
+    $measurementAnd = 'AND 1=0';
   }
 } else {
   $studentWhere = '';

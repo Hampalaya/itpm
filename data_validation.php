@@ -14,19 +14,18 @@ $validationResults = [];
 $stats = ['total' => 0, 'high' => 0, 'medium' => 0, 'low' => 0];
 
 function encoderScopeSql(string $studentAlias, array &$params): string {
-    if (($_SESSION['role'] ?? '') !== 'encoder' || empty($_SESSION['assigned_section'])) {
+    if (($_SESSION['role'] ?? '') !== 'encoder') {
         return '';
     }
 
-    $params[] = $_SESSION['assigned_section'];
-    $sql = " AND {$studentAlias}.section = ?";
-
-    if (!empty($_SESSION['assigned_grade'])) {
-        $params[] = $_SESSION['assigned_grade'];
-        $sql .= " AND {$studentAlias}.grade_level = ?";
+    if (empty($_SESSION['assigned_section']) || empty($_SESSION['assigned_grade'])) {
+        return ' AND 1=0';
     }
 
-    return $sql;
+    $params[] = $_SESSION['assigned_section'];
+    $params[] = $_SESSION['assigned_grade'];
+
+    return " AND {$studentAlias}.section = ? AND {$studentAlias}.grade_level = ?";
 }
 
 // Only run validation if button was clicked OR if it's the first load (to ensure persistency)

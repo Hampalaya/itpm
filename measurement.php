@@ -34,16 +34,7 @@ if (isset($_GET['export'])) {
     $where[] = "s.section = ?";
     $params[] = $sectionFilter;
   }
-  if (($_SESSION['role'] ?? '') === 'encoder' && !empty($_SESSION['assigned_section'])) {
-    if (!empty($_SESSION['assigned_grade'])) {
-      $where[] = "s.section = ? AND s.grade_level = ?";
-      $params[] = $_SESSION['assigned_section'];
-      $params[] = $_SESSION['assigned_grade'];
-    } else {
-      $where[] = "s.section = ?";
-      $params[] = $_SESSION['assigned_section'];
-    }
-  }
+  addEncoderStudentScope($where, $params);
 
   $sql = "SELECT m.*, s.first_name, s.last_name, s.grade_level, s.section, u.full_name as recorder_name
           FROM measurements m
@@ -123,6 +114,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
 // ADD or UPDATE
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && in_array($_POST['action'], ['add', 'update'])) {
   $studentId = (int)($_POST['student_id'] ?? 0);
+  $measurementId = (int)($_POST['id'] ?? 0);
   $type = $_POST['type'] ?? '';
   $height = (float)($_POST['height_cm'] ?? 0);
   $weight = (float)($_POST['weight_kg'] ?? 0);
@@ -133,6 +125,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && in_array
     $messageType = 'error';
   } elseif ($height < 50 || $height > 200 || $weight < 10 || $weight > 150) {
     $message = 'Invalid height/weight range.';
+    $messageType = 'error';
+  } elseif ($_POST['action'] === 'add' && !canAccessStudent($pdo, $studentId)) {
+    $message = 'You are not allowed to add a measurement for this student.';
+    $messageType = 'error';
+  } elseif ($_POST['action'] === 'update' && !canAccessMeasurement($pdo, $measurementId)) {
+    $message = 'You are not allowed to edit this measurement.';
     $messageType = 'error';
   } else {
     $bmi = calculateBMI($weight, $height);
@@ -153,10 +151,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && in_array
           exit;
         }
       } else {
-        $id = (int)($_POST['id'] ?? 0);
         $stmt = $pdo->prepare("UPDATE measurements SET type=?,height_cm=?,weight_kg=?,bmi=?,nutritional_status=?,measured_date=? WHERE id=?");
-        $stmt->execute([$type, $height, $weight, $bmi, $status, $date, $id]);
-        logAudit($pdo, 'update', 'measurements', $id, "Updated $type measurement");
+        $stmt->execute([$type, $height, $weight, $bmi, $status, $date, $measurementId]);
+        logAudit($pdo, 'update', 'measurements', $measurementId, "Updated $type measurement");
         header('Location: measurement.php?msg=updated');
         exit;
       }
@@ -202,16 +199,7 @@ if ($sectionFilter) {
   $where[] = "s.section = ?";
   $params[] = $sectionFilter;
 }
-if (($_SESSION['role'] ?? '') === 'encoder' && !empty($_SESSION['assigned_section'])) {
-  if (!empty($_SESSION['assigned_grade'])) {
-    $where[] = "s.section = ? AND s.grade_level = ?";
-    $params[] = $_SESSION['assigned_section'];
-    $params[] = $_SESSION['assigned_grade'];
-  } else {
-    $where[] = "s.section = ?";
-    $params[] = $_SESSION['assigned_section'];
-  }
-}
+addEncoderStudentScope($where, $params);
 
 $measurementsPerPage = 10;
 $page = max(1, (int)($_GET['page'] ?? 1));
@@ -240,16 +228,7 @@ $measurementsEnd = min($offset + count($measurements), $totalMeasurements);
 // Students for dropdown
 $studentWhere = [];
 $studentParams = [];
-if (($_SESSION['role'] ?? '') === 'encoder' && !empty($_SESSION['assigned_section'])) {
-  if (!empty($_SESSION['assigned_grade'])) {
-    $studentWhere[] = "s.section = ? AND s.grade_level = ?";
-    $studentParams[] = $_SESSION['assigned_section'];
-    $studentParams[] = $_SESSION['assigned_grade'];
-  } else {
-    $studentWhere[] = "s.section = ?";
-    $studentParams[] = $_SESSION['assigned_section'];
-  }
-}
+addEncoderStudentScope($studentWhere, $studentParams);
 $studentSql = "SELECT s.id, CONCAT(s.first_name,' ',s.last_name) as full_name, s.grade_level, s.section,
                MAX(CASE WHEN m.type = 'baseline' THEN 1 ELSE 0 END) as has_baseline,
                MAX(CASE WHEN m.type = 'endline' THEN 1 ELSE 0 END) as has_endline
@@ -263,18 +242,35 @@ $students = $studentStmt->fetchAll();
 
 $edit = null;
 $preSelectedStudentId = isset($_GET['student_id']) ? (int)$_GET['student_id'] : null;
+if ($preSelectedStudentId && !canAccessStudent($pdo, $preSelectedStudentId)) {
+  $preSelectedStudentId = null;
+}
 
 if (isset($_GET['edit'])) {
-  $stmt = $pdo->prepare("SELECT * FROM measurements WHERE id = ?");
-  $stmt->execute([(int)$_GET['edit']]);
+  $editParams = [(int)$_GET['edit']];
+  $stmt = $pdo->prepare("
+    SELECT m.*
+    FROM measurements m
+    JOIN students s ON m.student_id = s.id
+    WHERE m.id = ?
+  " . encoderStudentScopeSql('s', $editParams));
+  $stmt->execute($editParams);
   $edit = $stmt->fetch();
 }
 $showModal = isset($_GET['add']) || isset($_GET['edit']) || ($messageType === 'error' && isset($_POST['action']) && in_array($_POST['action'], ['add', 'update']));
 
 // Stats
-$total = $pdo->query("SELECT COUNT(*) FROM measurements")->fetchColumn();
-$baseline = $pdo->query("SELECT COUNT(*) FROM measurements WHERE type='baseline'")->fetchColumn();
-$endline = $pdo->query("SELECT COUNT(*) FROM measurements WHERE type='endline'")->fetchColumn();
+$statsParams = [];
+$statsFromSql = "FROM measurements m JOIN students s ON m.student_id = s.id WHERE 1=1" . encoderStudentScopeSql('s', $statsParams);
+$stmt = $pdo->prepare("SELECT COUNT(*) " . $statsFromSql);
+$stmt->execute($statsParams);
+$total = $stmt->fetchColumn();
+$stmt = $pdo->prepare("SELECT COUNT(*) " . $statsFromSql . " AND m.type = ?");
+$stmt->execute(array_merge($statsParams, ['baseline']));
+$baseline = $stmt->fetchColumn();
+$stmt = $pdo->prepare("SELECT COUNT(*) " . $statsFromSql . " AND m.type = ?");
+$stmt->execute(array_merge($statsParams, ['endline']));
+$endline = $stmt->fetchColumn();
 $monthly = max(0, $total - $baseline - $endline);
 ?>
 <!DOCTYPE html>

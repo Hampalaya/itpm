@@ -23,14 +23,7 @@ if (isset($_GET['export'])) {
     
     // Fetch students specifically for export
     $whereExport = []; $paramsExport = [];
-    if (($_SESSION['role'] ?? '') === 'encoder' && !empty($_SESSION['assigned_section'])) {
-      if (!empty($_SESSION['assigned_grade'])) {
-        $whereExport[] = "s.section = ?"; $paramsExport[] = $_SESSION['assigned_section'];
-        $whereExport[] = "s.grade_level = ?"; $paramsExport[] = $_SESSION['assigned_grade'];
-      } else {
-        $whereExport[] = "s.section = ?"; $paramsExport[] = $_SESSION['assigned_section'];
-      }
-    }
+    addEncoderStudentScope($whereExport, $paramsExport);
     
     $sqlExport = "SELECT s.id, CONCAT(s.first_name, ' ', s.last_name) as name, s.grade_level, s.section,
                    fl.is_present, fl.meal_served, fl.remarks
@@ -68,6 +61,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_attendance'])) {
     $saved = 0;
     
     foreach ($records as $studentId => $data) {
+        $studentId = (int)$studentId;
+        if (!canAccessStudent($pdo, $studentId)) {
+            continue;
+        }
+
         $present = isset($data['present']) ? 1 : 0;
         $meal = isset($data['meal']) ? 1 : 0;
         $remarks = trim($data['remarks'] ?? '');
@@ -92,14 +90,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_attendance'])) {
 
 // Fetch students for this date (with existing logs)
 $where = []; $params = [];
-if (($_SESSION['role'] ?? '') === 'encoder' && !empty($_SESSION['assigned_section'])) {
-  if (!empty($_SESSION['assigned_grade'])) {
-    $where[] = "s.section = ?"; $params[] = $_SESSION['assigned_section'];
-    $where[] = "s.grade_level = ?"; $params[] = $_SESSION['assigned_grade'];
-  } else {
-    $where[] = "s.section = ?"; $params[] = $_SESSION['assigned_section'];
-  }
-}
+addEncoderStudentScope($where, $params);
 $search = trim($_GET['search'] ?? '');
 if ($search) {
     $where[] = "(CONCAT(s.first_name, ' ', s.last_name) LIKE ?)"; $params[] = "%$search%";

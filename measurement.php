@@ -285,7 +285,7 @@ $monthly = max(0, $total - $baseline - $endline);
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="icon" type="image/png" href="images/logo_feed.png?v=1">
   <title>Anthropometric Measurements</title>
-  <link rel="stylesheet" href="css/measurement.css?v=20260513">
+  <link rel="stylesheet" href="css/measurement.css?v=<?= time() ?>">
   <link rel="stylesheet" href="css/sidebar.css?v=20260515" />
   <!-- Select2 CSS/JS for searchable dropdown -->
   <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />

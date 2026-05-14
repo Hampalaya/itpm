@@ -225,23 +225,25 @@ try {
   <link rel="icon" type="image/png" href="images/logo_feed.png?v=1">
   <title>User Management</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="css/user_management.css?v=20260513" />
+  <link rel="stylesheet" href="css/user_management.css?v=<?= time() ?>" />
   <link rel="stylesheet" href="css/sidebar.css?v=20260515" />
   <script src="js/sidebar.js" defer></script>
   <style>
     /* Minimal inline styles to guarantee functionality */
-    .app-container { min-height: 100vh; background: #f9fafb; }
+    .app-container { min-height: 100vh; background: linear-gradient(155deg, #fff7f7 0%, #fef2f2 100%); }
     .main-content { display: block; min-height: 100vh; padding: 24px 40px; }
-    .page-header { display:flex; justify-content:space-between; align-items:center; padding:24px 40px; border-bottom:1px solid #e5e7eb; background:#fff; }
-    .page-title { font-size:24px; font-weight:700; color:#101828; }
-    .page-subtitle { font-size:14px; color:#6b7280; margin-top:4px; }
-    .btn-add-user { display:inline-flex; align-items:center; gap:8px; padding:10px 20px; background:#00bc7d; color:white; border:none; border-radius:8px; font-weight:600; cursor:pointer; }
+    .page-header { display:flex; justify-content:space-between; align-items:center; gap:20px; margin-bottom:22px; padding:20px 22px; border:1px solid #fecaca; border-radius:12px; background:#fff; box-shadow:0 1px 2px rgba(0,0,0,0.05); position:relative; overflow:hidden; }
+    .page-header::before { content:""; position:absolute; inset:0 0 auto; height:4px; background:linear-gradient(90deg,#dc2626,#ef4444); }
+    .page-header-copy { min-width:0; text-align:left; }
+    .page-title { font-size:28px; font-weight:700; color:#101828; line-height:1.25; margin-bottom:6px; }
+    .page-subtitle { font-size:14px; color:#6b7280; line-height:1.5; }
+    .btn-add-user { display:inline-flex; align-items:center; gap:8px; padding:10px 20px; background:#dc2626; color:white; border:none; border-radius:8px; font-weight:600; cursor:pointer; }
     .btn-add-user svg { width:18px; height:18px; }
     
     .logged-in-card { display:flex; justify-content:space-between; align-items:center; padding:16px 40px; background:#fff; border-bottom:1px solid #e5e7eb; }
     .logged-in-info { display:flex; align-items:center; gap:12px; }
     .avatar { width:40px; height:40px; border-radius:50%; display:flex; align-items:center; justify-content:center; color:white; font-weight:600; }
-    .avatar-green { background:#00bc7d; }
+    .avatar-green { background:#dc2626; }
     .logged-in-label { font-size:12px; color:#6b7280; }
     .logged-in-name { font-weight:600; color:#101828; }
     .role-badge-viewer { padding:6px 12px; background:#f3f4f6; border-radius:999px; font-size:12px; font-weight:600; color:#6b7280; display:flex; align-items:center; gap:6px; }
@@ -256,7 +258,7 @@ try {
     .user-table th:last-child, .user-table td:last-child { min-width:260px; width:260px; }
     
     .status-badge { padding:4px 10px; border-radius:999px; font-size:11px; font-weight:600; }
-    .status-active { background:#dcfce7; color:#166534; }
+    .status-active { background:#fee2e2; color:#b91c1c; }
     .status-inactive { background:#f3f4f6; color:#6b7280; }
     
     .user-action-row { display:flex; align-items:center; gap:6px; flex-wrap:nowrap; white-space:nowrap; }
@@ -274,19 +276,19 @@ try {
     .form-input, .form-select { width:100%; padding:10px 12px; border:1px solid #e5e7eb; border-radius:8px; font-size:14px; }
     .modal-actions { display:flex; justify-content:flex-end; gap:12px; margin-top:24px; }
     .btn-cancel { padding:10px 20px; border-radius:8px; background:#fff; border:1px solid #e5e7eb; color:#101828; font-weight:600; cursor:pointer; }
-    .btn-save { padding:10px 20px; border-radius:8px; background:#00bc7d; color:white; border:none; font-weight:600; cursor:pointer; }
+    .btn-save { padding:10px 20px; border-radius:8px; background:#dc2626; color:white; border:none; font-weight:600; cursor:pointer; }
     .btn-confirm-delete { padding:10px 20px; border-radius:8px; background:#e7000b; color:white; border:none; font-weight:600; cursor:pointer; }
     
     /* Toast */
     .toast-container { position:fixed; bottom:24px; right:24px; z-index:10000; }
     .toast { background:#101828; color:white; padding:12px 20px; border-radius:8px; margin-top:8px; display:flex; align-items:center; gap:10px; animation:slideIn 0.3s; }
-    .toast.success { background:#00bc7d; }
+    .toast.success { background:#dc2626; }
     .toast.error { background:#e7000b; }
     @keyframes slideIn { from { transform:translateY(100px); opacity:0; } to { transform:translateY(0); opacity:1; } }
     .toast button { background:none; border:none; color:inherit; font-size:18px; cursor:pointer; margin-left:auto; }
     
     @media (max-width:768px) {
-      .page-header, .logged-in-card, .system-users-card { padding:16px; flex-direction:column; align-items:flex-start; gap:12px; }
+      .page-header, .logged-in-card, .system-users-card { padding:16px; flex-direction:column; align-items:flex-start; gap:14px; }
       .user-table { font-size:12px; }
       th, td { padding:8px 12px; }
     }
@@ -300,7 +302,7 @@ try {
         <div class="container">
       <!-- Page Header -->
       <div class="page-header">
-        <div>
+        <div class="page-header-copy">
           <div class="page-title">User Management</div>
           <div class="page-subtitle">Manage system users and access levels</div>
         </div>
@@ -356,7 +358,7 @@ try {
                 <tr>
                   <td>
                     <div style="display:flex;align-items:center;gap:10px">
-                      <div class="avatar" style="width:32px;height:32px;font-size:12px;background:<?= $u['is_active']?'#00bc7d':'#9ca3af' ?>"><?= strtoupper(substr($u['full_name'],0,1)) ?></div>
+                      <div class="avatar" style="width:32px;height:32px;font-size:12px;background:<?= $u['is_active']?'#dc2626':'#9ca3af' ?>"><?= strtoupper(substr($u['full_name'],0,1)) ?></div>
                       <div>
                         <div style="font-weight:600;color:#101828"><?= htmlspecialchars($u['full_name']) ?></div>
                         <div style="font-size:12px;color:#6b7280">Created: <?= date('M j, Y', strtotime($u['created_at'])) ?></div>
@@ -383,7 +385,7 @@ try {
                         <?php if ($u['is_active']): ?>
                           <button type="button" class="action-btn delete js-toggle-user" data-user-id="<?= (int)$u['id'] ?>" data-user-name="<?= $userNameAttr ?>" data-action="deactivate">Deactivate</button>
                         <?php else: ?>
-                          <button type="button" class="action-btn js-toggle-user" style="color:#00bc7d; border-color:#e5e7eb" data-user-id="<?= (int)$u['id'] ?>" data-user-name="<?= $userNameAttr ?>" data-action="activate">Activate</button>
+                          <button type="button" class="action-btn js-toggle-user" style="color:#dc2626; border-color:#fecaca" data-user-id="<?= (int)$u['id'] ?>" data-user-name="<?= $userNameAttr ?>" data-action="activate">Activate</button>
                         <?php endif; ?>
                       <?php endif; ?>
                     </div>
@@ -448,10 +450,10 @@ try {
                   <td>
                     <?php
                       $actionColors = [
-                        'insert' => ['bg' => '#dcfce7', 'text' => '#166534', 'label' => 'Created'],
+                        'insert' => ['bg' => '#fee2e2', 'text' => '#b91c1c', 'label' => 'Created'],
                         'update' => ['bg' => '#fef3c7', 'text' => '#92400e', 'label' => 'Updated'],
                         'delete' => ['bg' => '#fee2e2', 'text' => '#b91c1c', 'label' => 'Deleted'],
-                        'login'  => ['bg' => '#dbeafe', 'text' => '#1e40af', 'label' => 'Logged In'],
+                        'login'  => ['bg' => '#fff1f2', 'text' => '#dc2626', 'label' => 'Logged In'],
                       ];
                       $style = $actionColors[$log['action']] ?? ['bg' => '#f3f4f6', 'text' => '#6b7280', 'label' => ucfirst($log['action'])];
                     ?>
@@ -603,7 +605,7 @@ try {
   <?php if (!empty($generatedPassword)): ?>
   <div class="modal-overlay active" id="passwordRevealModal">
     <div class="modal" style="text-align: center; max-width: 400px;">
-      <div style="width: 48px; height: 48px; background: #dcfce7; color: #166534; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 16px;">
+      <div style="width: 48px; height: 48px; background: #fee2e2; color: #b91c1c; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 16px;">
         <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
       </div>
       <div class="modal-title" style="margin-bottom: 8px;">Account Created</div>
@@ -623,9 +625,9 @@ try {
         navigator.clipboard.writeText(textToCopy).then(() => {
             const btn = document.getElementById('btnCopyPass');
             btn.textContent = 'Copied!';
-            btn.style.background = '#dcfce7';
-            btn.style.color = '#166534';
-            btn.style.borderColor = '#dcfce7';
+            btn.style.background = '#fee2e2';
+            btn.style.color = '#b91c1c';
+            btn.style.borderColor = '#fecaca';
             setTimeout(() => {
                 btn.textContent = 'Copy';
                 btn.style.background = '#fff';
@@ -743,7 +745,7 @@ try {
     
     const btn = document.getElementById('toggleConfirmBtn');
     btn.textContent = isActivate ? 'Activate' : 'Deactivate';
-    btn.style.backgroundColor = isActivate ? '#00bc7d' : '#e7000b';
+    btn.style.backgroundColor = isActivate ? '#dc2626' : '#e7000b';
     
     toggleModal.classList.add('active');
   }

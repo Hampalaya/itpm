@@ -90,7 +90,7 @@ if (isset($_POST['run_validation']) || isset($_GET['auto_run'])) {
     <link rel="icon" type="image/png" href="images/logo_feed.png?v=1">
     <title>FEED System - Data Validation</title>
     <link rel="stylesheet" href="css/sidebar.css?v=20260515" />
-    <link rel="stylesheet" href="css/data_validation.css?v=20260513" />
+    <link rel="stylesheet" href="css/data_validation.css?v=<?= time() ?>" />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
     <script src="js/sidebar.js" defer></script>
   </head>
@@ -101,11 +101,11 @@ if (isset($_POST['run_validation']) || isset($_GET['auto_run'])) {
         <main class="page-content main-content">
           
           <div class="page-header">
-            <div>
+            <div class="page-header-copy">
               <h1>Data Validation</h1>
               <p>Identify and resolve data quality issues</p>
             </div>
-            <form method="post" action="" style="display:inline;">
+            <form method="post" action="" class="page-actions">
               <input type="hidden" name="run_validation" value="1">
               <button type="submit" class="btn btn-primary" id="runValidationBtn">
                 <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">

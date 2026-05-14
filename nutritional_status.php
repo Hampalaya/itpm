@@ -127,7 +127,7 @@ $studentsEnd = min($offset + count($pagedStudents), $totalStudents);
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <link rel="icon" type="image/png" href="images/logo_feed.png?v=1">
   <title>FEED System - Nutritional Status</title>
-  <link rel="stylesheet" href="css/nutritional_status.css?v=20260513" />
+  <link rel="stylesheet" href="css/nutritional_status.css?v=<?= time() ?>" />
   <link rel="stylesheet" href="css/sidebar.css?v=20260515" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
   <script src="js/sidebar.js" defer></script>
@@ -206,11 +206,11 @@ $studentsEnd = min($offset + count($pagedStudents), $totalStudents);
       <main class="page-content main-content">
         
         <div class="page-header">
-          <div>
+          <div class="page-header-copy">
             <h1>Nutritional Status</h1>
             <p>Track student nutritional progress and improvements</p>
           </div>
-          <a href="?<?= http_build_query(array_merge($_GET, ['export' => 1])) ?>" class="btn btn-secondary">
+          <a href="?<?= http_build_query(array_merge($_GET, ['export' => 1])) ?>" class="btn btn-secondary page-actions">
             <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
             Export Report
           </a>

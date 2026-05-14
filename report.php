@@ -149,7 +149,7 @@ if (isset($_GET['export']) || isset($_POST['generate'])) {
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <link rel="icon" type="image/png" href="images/logo_feed.png?v=1">
   <title>FEED System - Reports</title>
-  <link rel="stylesheet" href="css/report.css?v=20260513" />
+  <link rel="stylesheet" href="css/report.css?v=<?= time() ?>" />
   <link rel="stylesheet" href="css/sidebar.css?v=20260515" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
   <script src="js/sidebar.js" defer></script>
@@ -158,8 +158,8 @@ if (isset($_GET['export']) || isset($_POST['generate'])) {
     .stat-card { background:#fff; border-radius:12px; padding:20px; box-shadow:0 1px 3px rgba(0,0,0,0.1); }
     .stat-label { font-size:13px; color:#6b7280; margin-bottom:8px; }
     .stat-value { font-size:28px; font-weight:700; color:#101828; }
-    .stat-card.blue { border-left:4px solid #3b82f6; } .stat-card.green { border-left:4px solid #00bc7d; }
-    .stat-card.orange { border-left:4px solid #f59e0b; } .stat-card.purple { border-left:4px solid #8b5cf6; }
+    .stat-card.blue { border-left:4px solid #dc2626; } .stat-card.green { border-left:4px solid #dc2626; }
+    .stat-card.orange { border-left:4px solid #f59e0b; } .stat-card.purple { border-left:4px solid #b91c1c; }
     
     .card { background:#fff; border-radius:12px; box-shadow:0 1px 3px rgba(0,0,0,0.1); margin:24px 0; }
     .card-header { padding:16px 20px; border-bottom:1px solid #e5e7eb; display:flex; align-items:center; gap:10px; font-weight:600; color:#101828; }
@@ -174,12 +174,12 @@ if (isset($_GET['export']) || isset($_POST['generate'])) {
     
     .btn-group { display:flex; gap:12px; flex-wrap:wrap; margin-top:20px; }
     .btn { padding:10px 20px; border-radius:8px; font-size:14px; font-weight:600; cursor:pointer; border:none; display:inline-flex; align-items:center; gap:8px; }
-    .btn-primary { background:#00bc7d; color:white; } .btn-secondary { background:#fff; border:1px solid #e5e7eb; color:#101828; }
+    .btn-primary { background:#dc2626; color:white; } .btn-secondary { background:#fff; border:1px solid #e5e7eb; color:#101828; }
     
     .reports-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(300px,1fr)); gap:16px; }
     .report-card { display:flex; align-items:center; gap:16px; padding:16px; border:1px solid #e5e7eb; border-radius:12px; cursor:pointer; transition:all 0.15s; }
-    .report-card:hover { border-color:#00bc7d; box-shadow:0 4px 12px rgba(0,188,125,0.1); }
-    .report-icon { width:40px; height:40px; border-radius:10px; background:#f9fafb; display:flex; align-items:center; justify-content:center; color:#6b7280; }
+    .report-card:hover { border-color:#dc2626; box-shadow:0 4px 12px rgba(220,38,38,0.12); }
+    .report-icon { width:40px; height:40px; border-radius:10px; background:#fff1f2; display:flex; align-items:center; justify-content:center; color:#dc2626; }
     .report-info { flex:1; }
     .report-name { font-weight:600; color:#101828; margin-bottom:4px; }
     .report-desc { font-size:13px; color:#6b7280; }
@@ -188,7 +188,8 @@ if (isset($_GET['export']) || isset($_POST['generate'])) {
     /* Toast */
     .toast-container { position:fixed; bottom:24px; right:24px; z-index:9999; }
     .toast { background:#101828; color:white; padding:12px 20px; border-radius:8px; margin-top:8px; display:flex; align-items:center; gap:10px; animation:slideIn 0.3s; }
-    .toast.success { background:#00bc7d; }
+    .toast.success { background:#dc2626; }
+    .toast.success svg { color:#fff; }
     @keyframes slideIn { from { transform:translateY(100px); opacity:0; } to { transform:translateY(0); opacity:1; } }
     .toast button { background:none; border:none; color:inherit; font-size:18px; cursor:pointer; margin-left:auto; }
     
@@ -211,8 +212,10 @@ if (isset($_GET['export']) || isset($_POST['generate'])) {
       <main class="page-content main-content">
         
         <div class="page-header">
-          <h1>Reports</h1>
-          <p>Generate and export program reports</p>
+          <div class="page-header-copy">
+            <h1>Reports</h1>
+            <p>Generate and export program reports</p>
+          </div>
         </div>
 
         <!-- Stats (Dynamic) -->

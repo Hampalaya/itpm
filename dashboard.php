@@ -167,13 +167,13 @@ $trendDays = 14;
 $rawTrend = rowsValue(
     $pdo,
     "SELECT DATE(m.measured_date) AS period,
-            DATE_FORMAT(m.measured_date, '%b %e') AS label,
+            DATE_FORMAT(DATE(m.measured_date), '%b %e') AS label,
             SUM(m.nutritional_status = 'Underweight') AS underweight
      FROM measurements m
      JOIN students s ON m.student_id = s.id
      WHERE m.measured_date >= DATE_SUB(CURDATE(), INTERVAL ? DAY)
      $measurementAnd
-     GROUP BY period
+     GROUP BY DATE(m.measured_date), DATE_FORMAT(DATE(m.measured_date), '%b %e')
      ORDER BY period",
     array_merge([$trendDays - 1], $measurementParams)
 );
@@ -192,6 +192,12 @@ for ($i = $trendDays - 1; $i >= 0; $i--) {
         'underweight' => $trendMap[$d] ?? 0,
     ];
 }
+
+$latestTrendValue = (int) ($trendRows[count($trendRows) - 1]['underweight'] ?? 0);
+$firstTrendValue = (int) ($trendRows[0]['underweight'] ?? 0);
+$trendChange = $latestTrendValue - $firstTrendValue;
+$trendChangeClass = $trendChange > 0 ? 'risk' : ($trendChange < 0 ? 'good' : 'neutral');
+$trendChangeLabel = $trendChange === 0 ? 'No change' : (($trendChange > 0 ? '+' : '') . $trendChange . ' vs start');
 
 // Only fetch recent activities if the user is an admin
 $activityRows = [];
@@ -235,7 +241,7 @@ $chartData = [
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="icon" type="image/png" href="images/logo_feed.png?v=1">
     <title>FEED System - Dashboard</title>
-    <link rel="stylesheet" href="css/dashboard.css?v=20260513" />
+    <link rel="stylesheet" href="css/dashboard.css?v=20260514" />
     <link rel="stylesheet" href="css/sidebar.css?v=20260513" />
     <link href="https://cdn.fontsource.org/css/google/inter/400,500,600,700.css" rel="stylesheet" />
     <link href="https://cdn.fontsource.org/css/google/figtree/400,500,600,700.css" rel="stylesheet" />
@@ -325,7 +331,13 @@ $chartData = [
 
         <div class="charts-grid">
           <div class="chart-card animate-in delay-4">
-            <h3>Nutritional Status Distribution</h3>
+            <div class="chart-card-header">
+              <div>
+                <h3>Nutritional Status Distribution</h3>
+                <p>Latest recorded status for encoded students</p>
+              </div>
+              <span class="chart-pill"><?= array_sum($statusCounts) ?> records</span>
+            </div>
             <div class="chart-container"><div class="pie-chart-container"><canvas id="pieChart"></canvas></div></div>
             <div class="pie-legend">
               <?php foreach ($chartData['status']['labels'] as $index => $label): ?>
@@ -335,7 +347,13 @@ $chartData = [
           </div>
 
           <div class="chart-card animate-in delay-5">
-            <h3>Baseline vs Endline Progress</h3>
+            <div class="chart-card-header">
+              <div>
+                <h3>Baseline vs Endline Progress</h3>
+                <p>Comparison by nutritional status category</p>
+              </div>
+              <span class="chart-pill"><?= array_sum($endlineCounts) ?> endline</span>
+            </div>
             <div class="chart-container"><canvas id="barChart" height="200"></canvas></div>
             <div class="bar-legend">
               <div class="bar-legend-item"><div class="bar-legend-dot" style="background: #3b82f6"></div>Baseline</div>
@@ -345,7 +363,13 @@ $chartData = [
         </div>
 
         <div class="trend-chart animate-in delay-5">
-          <h3>Underweight Trend</h3>
+          <div class="chart-card-header trend-heading">
+            <div>
+              <h3>Underweight Trend</h3>
+              <p>Daily underweight measurements across the last 14 days</p>
+            </div>
+            <span class="trend-chip <?= $trendChangeClass ?>"><?= htmlspecialchars($trendChangeLabel) ?></span>
+          </div>
           <div class="trend-container"><canvas id="trendChart"></canvas></div>
         </div>
 
@@ -471,39 +495,96 @@ $chartData = [
         const values = dashboardData.trend.values;
         if (!values.length) return drawEmpty(ctx, canvas);
 
-        const max = Math.max(...values, 1);
-        const pad = 34 * window.devicePixelRatio;
-        const width = canvas.width - pad * 2;
-        const height = canvas.height - pad * 2;
+        const dpr = window.devicePixelRatio || 1;
+        const maxValue = Math.max(...values, 1);
+        const max = maxValue <= 5 ? 5 : Math.ceil(maxValue / 5) * 5;
+        const pad = {
+          top: 26 * dpr,
+          right: 24 * dpr,
+          bottom: 66 * dpr,
+          left: 46 * dpr,
+        };
+        const width = canvas.width - pad.left - pad.right;
+        const height = canvas.height - pad.top - pad.bottom;
         ctx.clearRect(0, 0, canvas.width, canvas.height);
-        ctx.strokeStyle = '#e5e7eb';
-        ctx.beginPath();
-        ctx.moveTo(pad, pad);
-        ctx.lineTo(pad, canvas.height - pad);
-        ctx.lineTo(canvas.width - pad, canvas.height - pad);
-        ctx.stroke();
+
+        ctx.font = `${11 * dpr}px Inter, sans-serif`;
+        ctx.textBaseline = 'middle';
+        ctx.lineWidth = 1 * dpr;
+
+        const chartBottom = canvas.height - pad.bottom;
+        const chartRight = canvas.width - pad.right;
+        const yTicks = max <= 5 ? 5 : 4;
+        for (let i = 0; i <= yTicks; i++) {
+          const tickValue = (max / yTicks) * i;
+          const y = chartBottom - (tickValue / max) * height;
+          ctx.strokeStyle = i === 0 ? '#cbd5e1' : '#e5e7eb';
+          ctx.beginPath();
+          ctx.moveTo(pad.left, y);
+          ctx.lineTo(chartRight, y);
+          ctx.stroke();
+
+          ctx.fillStyle = '#667085';
+          ctx.textAlign = 'right';
+          ctx.fillText(Math.round(tickValue), pad.left - 10 * dpr, y);
+        }
 
         const points = values.map((value, index) => ({
-          x: pad + (labels.length === 1 ? width / 2 : (width / (labels.length - 1)) * index),
-          y: canvas.height - pad - (value / max) * height,
+          x: pad.left + (labels.length === 1 ? width / 2 : (width / (labels.length - 1)) * index),
+          y: chartBottom - (value / max) * height,
         }));
+
+        const fill = ctx.createLinearGradient(0, pad.top, 0, chartBottom);
+        fill.addColorStop(0, 'rgba(239, 68, 68, 0.22)');
+        fill.addColorStop(1, 'rgba(239, 68, 68, 0.02)');
+        ctx.beginPath();
+        points.forEach((point, index) => index ? ctx.lineTo(point.x, point.y) : ctx.moveTo(point.x, point.y));
+        ctx.lineTo(points[points.length - 1].x, chartBottom);
+        ctx.lineTo(points[0].x, chartBottom);
+        ctx.closePath();
+        ctx.fillStyle = fill;
+        ctx.fill();
+
         ctx.beginPath();
         points.forEach((point, index) => index ? ctx.lineTo(point.x, point.y) : ctx.moveTo(point.x, point.y));
         ctx.strokeStyle = '#ef4444';
-        ctx.lineWidth = 3 * window.devicePixelRatio;
+        ctx.lineWidth = 3 * dpr;
+        ctx.lineJoin = 'round';
+        ctx.lineCap = 'round';
         ctx.stroke();
 
-        ctx.fillStyle = '#ef4444';
-        points.forEach(point => {
+        points.forEach((point, index) => {
           ctx.beginPath();
-          ctx.arc(point.x, point.y, 4 * window.devicePixelRatio, 0, Math.PI * 2);
+          ctx.arc(point.x, point.y, 4 * dpr, 0, Math.PI * 2);
+          ctx.fillStyle = '#ffffff';
           ctx.fill();
+          ctx.strokeStyle = '#ef4444';
+          ctx.lineWidth = 2 * dpr;
+          ctx.stroke();
+
+          if (values[index] > 0) {
+            ctx.fillStyle = '#344054';
+            ctx.textAlign = 'center';
+            ctx.fillText(values[index], point.x, point.y - 14 * dpr);
+          }
         });
 
-        ctx.fillStyle = '#6b7280';
-        ctx.font = `${10 * window.devicePixelRatio}px Inter, sans-serif`;
-        ctx.textAlign = 'center';
-        labels.forEach((label, index) => ctx.fillText(label, points[index].x, canvas.height - 9 * window.devicePixelRatio));
+        const maxLabels = Math.max(3, Math.floor(width / (76 * dpr)));
+        const labelInterval = Math.max(1, Math.ceil(labels.length / maxLabels));
+        ctx.fillStyle = '#667085';
+        ctx.font = `${11 * dpr}px Inter, sans-serif`;
+        ctx.textAlign = 'right';
+        ctx.textBaseline = 'middle';
+
+        labels.forEach((label, index) => {
+          const shouldShow = index === 0 || index === labels.length - 1 || index % labelInterval === 0;
+          if (!shouldShow) return;
+          ctx.save();
+          ctx.translate(points[index].x, chartBottom + 36 * dpr);
+          ctx.rotate(-Math.PI / 5);
+          ctx.fillText(label, 0, 0);
+          ctx.restore();
+        });
       }
 
       function drawDashboardCharts() {

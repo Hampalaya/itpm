@@ -147,7 +147,7 @@ $currentPage = basename($_SERVER['PHP_SELF'], '.php');
       </div>
       <div style="display:flex;justify-content:flex-end;gap:12px;">
         <button type="button" onclick="closeSidebarChangePassword()" style="padding:8px 16px;border-radius:8px;background:#fff;border:1px solid #e5e7eb;font-weight:600;cursor:pointer">Cancel</button>
-        <button type="submit" style="padding:8px 16px;border-radius:8px;background:#00bc7d;color:white;border:none;font-weight:600;cursor:pointer">Save Password</button>
+        <button type="submit" style="padding:8px 16px;border-radius:8px;background:#dc2626;color:white;border:none;font-weight:600;cursor:pointer">Save Password</button>
       </div>
     </form>
   </div>

@@ -239,8 +239,8 @@ $showAddModal = isset($_GET['add']) || (isset($_POST['action']) && $_POST['actio
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <link rel="icon" type="image/png" href="images/logo_feed.png?v=1">
   <title>FEED System - Student Profiles</title>
-  <link rel="stylesheet" href="css/sidebar.css?v=20260513" />
-  <link rel="stylesheet" href="css/student_profile.css?v=20260513" />
+  <link rel="stylesheet" href="css/sidebar.css?v=20260515" />
+  <link rel="stylesheet" href="css/student_profile.css?v=20260514-red" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
   <script src="js/sidebar.js" defer></script>
   <script src="js/student_profile.js?v=20260514" defer></script>

@@ -64,12 +64,12 @@
 .header-icon {
   width: 44px;
   height: 44px;
-  background: #00a88a;
+  background: #dc2626;
   border-radius: 12px;
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 4px 10px rgba(0, 168, 138, 0.25);
+  box-shadow: 0 4px 10px rgba(220, 38, 38, 0.25);
   flex-shrink: 0;
 }
 
@@ -82,7 +82,7 @@
 .header-text h2 {
   font-size: 18px;
   font-weight: 700;
-  color: #00a88a;
+  color: #dc2626;
   letter-spacing: 0.5px;
 }
 
@@ -161,12 +161,12 @@
 }
 
 .nav-item:hover {
-  background: #f0f7f5;
+  background: #fff1f2;
 }
 
 .nav-item.active {
-  background: #00a88a;
-  box-shadow: 0 4px 12px rgba(0, 168, 138, 0.3);
+  background: #dc2626;
+  box-shadow: 0 4px 12px rgba(220, 38, 38, 0.28);
 }
 
 .nav-item.active .nav-icon svg {
@@ -200,7 +200,7 @@
 }
 
 .nav-item:hover .nav-icon svg {
-  stroke: #00a88a;
+  stroke: #dc2626;
 }
 
 .nav-label {
@@ -250,7 +250,7 @@
   width: 40px;
   height: 40px;
   border-radius: 50%;
-  background: #00a88a;
+  background: #dc2626;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -528,18 +528,18 @@
   width: 48px;
   height: 48px;
   border-radius: 12px;
-  background: #00a88a;
+  background: #dc2626;
   border: none;
   cursor: pointer;
   display: none;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 4px 12px rgba(0, 168, 138, 0.3);
+  box-shadow: 0 4px 12px rgba(220, 38, 38, 0.28);
   transition: all 0.3s ease;
 }
 
 .mobile-toggle:hover {
-  background: #00997a;
+  background: #b91c1c;
   transform: scale(1.05);
 }
 

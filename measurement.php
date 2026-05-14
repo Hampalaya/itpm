@@ -286,7 +286,7 @@ $monthly = max(0, $total - $baseline - $endline);
   <link rel="icon" type="image/png" href="images/logo_feed.png?v=1">
   <title>Anthropometric Measurements</title>
   <link rel="stylesheet" href="css/measurement.css?v=20260513">
-  <link rel="stylesheet" href="css/sidebar.css?v=20260513" />
+  <link rel="stylesheet" href="css/sidebar.css?v=20260515" />
   <!-- Select2 CSS/JS for searchable dropdown -->
   <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
   <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>

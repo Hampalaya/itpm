@@ -220,7 +220,7 @@ $chartData = [
     'status' => [
         'labels' => array_keys($statusCounts),
         'values' => array_values($statusCounts),
-        'colors' => ['#10b981', '#ef4444', '#f59e0b', '#f97316'],
+        'colors' => ['#16a34a', '#dc2626', '#f59e0b', '#f97316'],
     ],
     'progress' => [
         'labels' => ['Underweight', 'Normal', 'Overweight', 'Obese'],
@@ -241,8 +241,8 @@ $chartData = [
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="icon" type="image/png" href="images/logo_feed.png?v=1">
     <title>FEED System - Dashboard</title>
-    <link rel="stylesheet" href="css/dashboard.css?v=20260514" />
-    <link rel="stylesheet" href="css/sidebar.css?v=20260513" />
+    <link rel="stylesheet" href="css/dashboard.css?v=20260515" />
+    <link rel="stylesheet" href="css/sidebar.css?v=20260515" />
     <link href="https://cdn.fontsource.org/css/google/inter/400,500,600,700.css" rel="stylesheet" />
     <link href="https://cdn.fontsource.org/css/google/figtree/400,500,600,700.css" rel="stylesheet" />
     <script src="js/sidebar.js" defer></script>
@@ -357,7 +357,7 @@ $chartData = [
             <div class="chart-container"><canvas id="barChart" height="200"></canvas></div>
             <div class="bar-legend">
               <div class="bar-legend-item"><div class="bar-legend-dot" style="background: #3b82f6"></div>Baseline</div>
-              <div class="bar-legend-item"><div class="bar-legend-dot" style="background: #10b981"></div>Endline</div>
+              <div class="bar-legend-item"><div class="bar-legend-dot" style="background: #dc2626"></div>Endline</div>
             </div>
           </div>
         </div>
@@ -481,7 +481,7 @@ $chartData = [
           const eHeight = (endline[index] / max) * (canvas.height - pad * 2);
           ctx.fillStyle = '#3b82f6';
           ctx.fillRect(x - barWidth - 2 * window.devicePixelRatio, canvas.height - pad - bHeight, barWidth, bHeight);
-          ctx.fillStyle = '#10b981';
+          ctx.fillStyle = '#dc2626';
           ctx.fillRect(x + 2 * window.devicePixelRatio, canvas.height - pad - eHeight, barWidth, eHeight);
           ctx.fillStyle = '#6b7280';
           ctx.fillText(label, x, canvas.height - 10 * window.devicePixelRatio);
@@ -535,8 +535,8 @@ $chartData = [
         }));
 
         const fill = ctx.createLinearGradient(0, pad.top, 0, chartBottom);
-        fill.addColorStop(0, 'rgba(239, 68, 68, 0.22)');
-        fill.addColorStop(1, 'rgba(239, 68, 68, 0.02)');
+        fill.addColorStop(0, 'rgba(220, 38, 38, 0.22)');
+        fill.addColorStop(1, 'rgba(220, 38, 38, 0.02)');
         ctx.beginPath();
         points.forEach((point, index) => index ? ctx.lineTo(point.x, point.y) : ctx.moveTo(point.x, point.y));
         ctx.lineTo(points[points.length - 1].x, chartBottom);
@@ -547,7 +547,7 @@ $chartData = [
 
         ctx.beginPath();
         points.forEach((point, index) => index ? ctx.lineTo(point.x, point.y) : ctx.moveTo(point.x, point.y));
-        ctx.strokeStyle = '#ef4444';
+        ctx.strokeStyle = '#dc2626';
         ctx.lineWidth = 3 * dpr;
         ctx.lineJoin = 'round';
         ctx.lineCap = 'round';
@@ -558,7 +558,7 @@ $chartData = [
           ctx.arc(point.x, point.y, 4 * dpr, 0, Math.PI * 2);
           ctx.fillStyle = '#ffffff';
           ctx.fill();
-          ctx.strokeStyle = '#ef4444';
+          ctx.strokeStyle = '#dc2626';
           ctx.lineWidth = 2 * dpr;
           ctx.stroke();
 

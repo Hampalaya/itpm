@@ -89,7 +89,7 @@ if (isset($_POST['run_validation']) || isset($_GET['auto_run'])) {
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="icon" type="image/png" href="images/logo_feed.png?v=1">
     <title>FEED System - Data Validation</title>
-    <link rel="stylesheet" href="css/sidebar.css?v=20260513" />
+    <link rel="stylesheet" href="css/sidebar.css?v=20260515" />
     <link rel="stylesheet" href="css/data_validation.css?v=20260513" />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
     <script src="js/sidebar.js" defer></script>

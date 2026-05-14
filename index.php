@@ -58,7 +58,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <link rel="icon" type="image/png" href="images/logo_feed.png?v=1">
+    <link rel="icon" type="image/png" href="images/logo_feed.png?v=<?= time() ?>">
     <title>Nasugbu West Central School — Login</title>
     <link rel="stylesheet" href="css/login.css?v=20260513" />
   </head>
@@ -66,7 +66,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <div class="page-wrapper">
       <div class="header-section">
         <div class="logo-wrapper">
-            <img src="images/logo.jpg" alt="Nasugbu West Central School" class="logo" />
+            <img src="images/logo.jpg?v=<?= time() ?>" alt="Nasugbu West Central School" class="logo" />
         </div>
         <h3 class="nwcs-header">
               <span style="width:6px;height:6px;border-radius:50%;background:#9B1A2F;flex-shrink:0;display:inline-block;"></span>

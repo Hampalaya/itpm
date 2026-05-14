@@ -73,10 +73,16 @@ svg.icon {
   border-radius: 8px;
   border: none;
   color: #ffffff;
-  background: linear-gradient(90deg, #00BC7D 0%, #009689 100%);
+  background: linear-gradient(90deg, #dc2626 0%, #b91c1c 100%);
   box-shadow: 0 4px 12px rgba(3, 7, 18, 0.08);
   font-weight: 600;
   cursor: pointer;
+  transition: opacity 0.15s ease, transform 0.15s ease;
+}
+
+.login-button:hover {
+  opacity: 0.95;
+  transform: translateY(-1px);
 }
 
 /* Page layout */

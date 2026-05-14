@@ -118,7 +118,7 @@ $studentsEnd = min($offset + count($pagedStudents), $totalStudents);
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <link rel="icon" type="image/png" href="images/logo_feed.png?v=1">
+  <link rel="icon" type="image/png" href="images/logo_feed.png?v=<?= time() ?>">
   <title>FEED System - Nutritional Status</title>
   <link rel="stylesheet" href="css/nutritional_status.css?v=<?= time() ?>" />
   <link rel="stylesheet" href="css/sidebar.css?v=20260515" />

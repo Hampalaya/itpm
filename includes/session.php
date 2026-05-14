@@ -86,4 +86,27 @@ if (isset($_SESSION['user_id'])) {
     } catch (PDOException $e) {
         // Silently fail if column doesn't exist yet to prevent breaking the app before migration
     }
+
+    try {
+        $stmt = $pdo->prepare("SELECT role, assigned_section, assigned_grade, is_active FROM users WHERE id = ?");
+        $stmt->execute([$_SESSION['user_id']]);
+        $currentUser = $stmt->fetch(PDO::FETCH_ASSOC);
+    } catch (PDOException $e) {
+        $stmt = $pdo->prepare("SELECT role, assigned_section, is_active FROM users WHERE id = ?");
+        $stmt->execute([$_SESSION['user_id']]);
+        $currentUser = $stmt->fetch(PDO::FETCH_ASSOC);
+        if (!empty($currentUser)) {
+            $currentUser['assigned_grade'] = null;
+        }
+    }
+
+    if (empty($currentUser) || (isset($currentUser['is_active']) && (int) $currentUser['is_active'] !== 1)) {
+        session_destroy();
+        header('Location: index.php');
+        exit;
+    }
+
+    $_SESSION['role'] = $currentUser['role'] ?? $_SESSION['role'] ?? null;
+    $_SESSION['assigned_section'] = $currentUser['assigned_section'] ?? null;
+    $_SESSION['assigned_grade'] = $currentUser['assigned_grade'] ?? null;
 }

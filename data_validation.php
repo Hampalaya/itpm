@@ -13,6 +13,22 @@ if (!isset($_SESSION['user_id'])) {
 $validationResults = [];
 $stats = ['total' => 0, 'high' => 0, 'medium' => 0, 'low' => 0];
 
+function encoderScopeSql(string $studentAlias, array &$params): string {
+    if (($_SESSION['role'] ?? '') !== 'encoder' || empty($_SESSION['assigned_section'])) {
+        return '';
+    }
+
+    $params[] = $_SESSION['assigned_section'];
+    $sql = " AND {$studentAlias}.section = ?";
+
+    if (!empty($_SESSION['assigned_grade'])) {
+        $params[] = $_SESSION['assigned_grade'];
+        $sql .= " AND {$studentAlias}.grade_level = ?";
+    }
+
+    return $sql;
+}
+
 // Only run validation if button was clicked OR if it's the first load (to ensure persistency)
 if (!isset($_POST['run_validation']) && !isset($_GET['auto_run'])) {
     $_GET['auto_run'] = 1; // Auto-run by default so it doesn't show "All Clear!" incorrectly
@@ -21,53 +37,65 @@ if (!isset($_POST['run_validation']) && !isset($_GET['auto_run'])) {
 if (isset($_POST['run_validation']) || isset($_GET['auto_run'])) {
     
     // 1. Students with missing/invalid LRN (HIGH)
-    $stmt = $pdo->query("SELECT id, CONCAT(first_name,' ',last_name) as name, lrn, 'Missing or invalid LRN' as issue, 'high' as priority, 'student' as fix_type FROM students WHERE lrn IS NULL OR lrn = '' OR LENGTH(lrn) != 12");
+    $params = [];
+    $stmt = $pdo->prepare("SELECT s.id, CONCAT(s.first_name,' ',s.last_name) as name, s.lrn, 'Missing or invalid LRN' as issue, 'high' as priority, 'student' as fix_type FROM students s WHERE (s.lrn IS NULL OR s.lrn = '' OR LENGTH(s.lrn) != 12)" . encoderScopeSql('s', $params));
+    $stmt->execute($params);
     foreach ($stmt->fetchAll() as $row) { $validationResults[] = $row; $stats['total']++; $stats['high']++; }
     
     // 2. Age/Grade mismatch (MEDIUM) - e.g., Grade 1 student age > 9
-    $stmt = $pdo->query("SELECT id, CONCAT(first_name,' ',last_name) as name, grade_level, age, 
+    $params = [];
+    $stmt = $pdo->prepare("SELECT s.id, CONCAT(s.first_name,' ',s.last_name) as name, s.grade_level, s.age, 
         CASE 
-            WHEN grade_level = 1 AND age > 9 THEN 'Age too high for Grade 1'
-            WHEN grade_level = 2 AND age > 10 THEN 'Age too high for Grade 2'
-            WHEN grade_level = 3 AND age > 11 THEN 'Age too high for Grade 3'
-            WHEN grade_level = 4 AND age > 12 THEN 'Age too high for Grade 4'
-            WHEN grade_level = 5 AND age > 13 THEN 'Age too high for Grade 5'
-            WHEN grade_level = 6 AND age > 14 THEN 'Age too high for Grade 6'
-            WHEN age < 5 THEN 'Age too young for elementary'
+            WHEN s.grade_level = 1 AND s.age > 9 THEN 'Age too high for Grade 1'
+            WHEN s.grade_level = 2 AND s.age > 10 THEN 'Age too high for Grade 2'
+            WHEN s.grade_level = 3 AND s.age > 11 THEN 'Age too high for Grade 3'
+            WHEN s.grade_level = 4 AND s.age > 12 THEN 'Age too high for Grade 4'
+            WHEN s.grade_level = 5 AND s.age > 13 THEN 'Age too high for Grade 5'
+            WHEN s.grade_level = 6 AND s.age > 14 THEN 'Age too high for Grade 6'
+            WHEN s.age < 5 THEN 'Age too young for elementary'
             ELSE 'Possible age/grade mismatch'
         END as issue, 'medium' as priority, 'student' as fix_type
-        FROM students 
-        WHERE (grade_level = 1 AND age > 9) OR (grade_level = 2 AND age > 10) OR (grade_level = 3 AND age > 11) 
-           OR (grade_level = 4 AND age > 12) OR (grade_level = 5 AND age > 13) OR (grade_level = 6 AND age > 14) OR age < 5");
+        FROM students s
+        WHERE ((s.grade_level = 1 AND s.age > 9) OR (s.grade_level = 2 AND s.age > 10) OR (s.grade_level = 3 AND s.age > 11) 
+           OR (s.grade_level = 4 AND s.age > 12) OR (s.grade_level = 5 AND s.age > 13) OR (s.grade_level = 6 AND s.age > 14) OR s.age < 5)" . encoderScopeSql('s', $params));
+    $stmt->execute($params);
     foreach ($stmt->fetchAll() as $row) { $validationResults[] = $row; $stats['total']++; $stats['medium']++; }
     
     // 3. Measurements with impossible BMI (HIGH) - BMI < 10 or > 50
-    $stmt = $pdo->query("SELECT m.id, CONCAT(s.first_name,' ',s.last_name) as name, m.bmi, m.type,
+    $params = [];
+    $stmt = $pdo->prepare("SELECT m.id, CONCAT(s.first_name,' ',s.last_name) as name, m.bmi, m.type,
         CASE WHEN m.bmi < 10 THEN 'BMI too low (possible data entry error)' 
              WHEN m.bmi > 50 THEN 'BMI too high (possible data entry error)'
              ELSE 'Invalid BMI value' END as issue, 'high' as priority, 'measurement' as fix_type
         FROM measurements m
         JOIN students s ON m.student_id = s.id
-        WHERE m.bmi IS NOT NULL AND (m.bmi < 10 OR m.bmi > 50)");
+        WHERE m.bmi IS NOT NULL AND (m.bmi < 10 OR m.bmi > 50)" . encoderScopeSql('s', $params));
+    $stmt->execute($params);
     foreach ($stmt->fetchAll() as $row) { $validationResults[] = $row; $stats['total']++; $stats['high']++; }
     
     // 4. Students missing baseline measurement (MEDIUM)
-    $stmt = $pdo->query("SELECT s.id, CONCAT(s.first_name,' ',s.last_name) as name, NULL as bmi, NULL as type, 
+    $params = [];
+    $stmt = $pdo->prepare("SELECT s.id, CONCAT(s.first_name,' ',s.last_name) as name, NULL as bmi, NULL as type, 
         'Missing baseline measurement' as issue, 'medium' as priority, 'measurement' as fix_type, s.id as student_id
         FROM students s
         LEFT JOIN measurements m ON s.id = m.student_id AND m.type = 'baseline'
-        WHERE m.id IS NULL");
+        WHERE m.id IS NULL" . encoderScopeSql('s', $params));
+    $stmt->execute($params);
     foreach ($stmt->fetchAll() as $row) { $validationResults[] = $row; $stats['total']++; $stats['medium']++; }
     
     // 5. Duplicate LRNs (HIGH) - should never happen but check anyway
-    $stmt = $pdo->query("SELECT s1.id, CONCAT(s1.first_name,' ',s1.last_name) as name, s1.lrn, 
+    $params = [];
+    $stmt = $pdo->prepare("SELECT s1.id, CONCAT(s1.first_name,' ',s1.last_name) as name, s1.lrn, 
         'Duplicate LRN found' as issue, 'high' as priority, 'student' as fix_type
         FROM students s1
-        INNER JOIN students s2 ON s1.lrn = s2.lrn AND s1.id < s2.id");
+        INNER JOIN students s2 ON s1.lrn = s2.lrn AND s1.id < s2.id
+        WHERE 1=1" . encoderScopeSql('s1', $params));
+    $stmt->execute($params);
     foreach ($stmt->fetchAll() as $row) { $validationResults[] = $row; $stats['total']++; $stats['high']++; }
     
     // 6. Height/weight outliers (LOW) - flag for review
-    $stmt = $pdo->query("SELECT m.id, CONCAT(s.first_name,' ',s.last_name) as name, m.height_cm, m.weight_kg,
+    $params = [];
+    $stmt = $pdo->prepare("SELECT m.id, CONCAT(s.first_name,' ',s.last_name) as name, m.height_cm, m.weight_kg,
         CASE 
             WHEN m.height_cm < 80 OR m.height_cm > 200 THEN 'Height outlier (review)'
             WHEN m.weight_kg < 15 OR m.weight_kg > 120 THEN 'Weight outlier (review)'
@@ -75,7 +103,8 @@ if (isset($_POST['run_validation']) || isset($_GET['auto_run'])) {
         END as issue, 'low' as priority, 'measurement' as fix_type
         FROM measurements m
         JOIN students s ON m.student_id = s.id
-        WHERE m.height_cm < 80 OR m.height_cm > 200 OR m.weight_kg < 15 OR m.weight_kg > 120");
+        WHERE (m.height_cm < 80 OR m.height_cm > 200 OR m.weight_kg < 15 OR m.weight_kg > 120)" . encoderScopeSql('s', $params));
+    $stmt->execute($params);
     foreach ($stmt->fetchAll() as $row) { $validationResults[] = $row; $stats['total']++; $stats['low']++; }
     
     // Log validation run
@@ -89,8 +118,8 @@ if (isset($_POST['run_validation']) || isset($_GET['auto_run'])) {
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="icon" type="image/png" href="images/logo_feed.png?v=1">
     <title>FEED System - Data Validation</title>
-    <link rel="stylesheet" href="css/sidebar.css?v=20260513" />
-    <link rel="stylesheet" href="css/data_validation.css?v=20260513" />
+    <link rel="stylesheet" href="css/sidebar.css?v=20260515" />
+    <link rel="stylesheet" href="css/data_validation.css?v=<?= time() ?>" />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
     <script src="js/sidebar.js" defer></script>
   </head>
@@ -101,11 +130,11 @@ if (isset($_POST['run_validation']) || isset($_GET['auto_run'])) {
         <main class="page-content main-content">
           
           <div class="page-header">
-            <div>
+            <div class="page-header-copy">
               <h1>Data Validation</h1>
               <p>Identify and resolve data quality issues</p>
             </div>
-            <form method="post" action="" style="display:inline;">
+            <form method="post" action="" class="page-actions">
               <input type="hidden" name="run_validation" value="1">
               <button type="submit" class="btn btn-primary" id="runValidationBtn">
                 <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">

@@ -239,8 +239,8 @@ $showAddModal = isset($_GET['add']) || (isset($_POST['action']) && $_POST['actio
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <link rel="icon" type="image/png" href="images/logo_feed.png?v=1">
   <title>FEED System - Student Profiles</title>
-  <link rel="stylesheet" href="css/sidebar.css?v=20260513" />
-  <link rel="stylesheet" href="css/student_profile.css?v=20260513" />
+  <link rel="stylesheet" href="css/sidebar.css?v=20260515" />
+  <link rel="stylesheet" href="css/student_profile.css?v=<?= time() ?>" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
   <script src="js/sidebar.js" defer></script>
   <script src="js/student_profile.js?v=20260514" defer></script>
@@ -262,37 +262,38 @@ $showAddModal = isset($_GET['add']) || (isset($_POST['action']) && $_POST['actio
 
         <!-- Page Header -->
         <div class="page-header">
-          <h1 class="page-title">Student Profiles</h1>
-          <p class="page-subtitle">Manage student information and beneficiary status</p>
-        </div>
+          <div class="page-header-copy">
+            <h1 class="page-title">Student Profiles</h1>
+            <p class="page-subtitle">Manage student information and beneficiary status</p>
+          </div>
 
-        <!-- Header Actions -->
-        <div class="header-actions">
-          <?php if ($_SESSION['role'] === 'admin'): ?>
-          <!-- Export: triggers CSV download -->
-          <form method="get" action="" style="display:inline;">
-            <input type="hidden" name="export" value="1">
-            <?php foreach (['search', 'grade_filter', 'section_filter', 'sex_filter', 'school_year_filter'] as $k): ?>
-              <?php if (!empty($_GET[$k])): ?><input type="hidden" name="<?= $k ?>" value="<?= htmlspecialchars($_GET[$k]) ?>"><?php endif; ?>
-            <?php endforeach; ?>
-            <button type="submit" class="btn btn-secondary">
+          <div class="header-actions">
+            <?php if ($_SESSION['role'] === 'admin'): ?>
+            <!-- Export: triggers CSV download -->
+            <form method="get" action="" style="display:inline;">
+              <input type="hidden" name="export" value="1">
+              <?php foreach (['search', 'grade_filter', 'section_filter', 'sex_filter', 'school_year_filter'] as $k): ?>
+                <?php if (!empty($_GET[$k])): ?><input type="hidden" name="<?= $k ?>" value="<?= htmlspecialchars($_GET[$k]) ?>"><?php endif; ?>
+              <?php endforeach; ?>
+              <button type="submit" class="btn btn-secondary">
+                <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                  <polyline points="7 10 12 15 17 10" />
+                  <line x1="12" y1="15" x2="12" y2="3" />
+                </svg>
+                Export
+              </button>
+            </form>
+            <?php endif; ?>
+            <!-- Add Student: opens modal via URL param -->
+            <a href="?add=1" class="btn btn-primary">
               <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                <polyline points="7 10 12 15 17 10" />
-                <line x1="12" y1="15" x2="12" y2="3" />
+                <line x1="12" y1="5" x2="12" y2="19" />
+                <line x1="5" y1="12" x2="19" y2="12" />
               </svg>
-              Export
-            </button>
-          </form>
-          <?php endif; ?>
-          <!-- Add Student: opens modal via URL param -->
-          <a href="?add=1" class="btn btn-primary">
-            <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-              <line x1="12" y1="5" x2="12" y2="19" />
-              <line x1="5" y1="12" x2="19" y2="12" />
-            </svg>
-            Add Student
-          </a>
+              Add Student
+            </a>
+          </div>
         </div>
 
         <!-- Search & Filters -->
